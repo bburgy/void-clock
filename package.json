@@ -1,0 +1,45 @@
+{
+  "author": "Couloir42",
+  "dependencies": {
+  },
+  "keywords": [
+    "ClockLight",
+    "clean watchface",
+    "clock"
+  ],
+  "name": "ClockLight",
+  "pebble": {
+    "capabilities": [],
+    "displayName": "Clock Light",
+    "enableMultiJS": false,
+    "messageKeys": { },
+    "projectType": "native",
+    "resources": {
+      "media": [
+        {
+          "file": "noBluetooth.pdc",
+          "name": "NO_BLUETOOTH",
+          "type": "raw"
+        },
+        {
+          "file": "emptyBattery.pdc",
+          "name": "EMPTY_BATTERY",
+          "type": "raw"
+        }
+      ]
+    },
+    "sdkVersion": "3",
+    "targetPlatforms": [
+      "aplite",
+      "basalt"
+    ],
+    "uuid": "ddfe6426-7dc9-402f-bed2-edfb6bede323",
+    "watchapp": {
+      "hiddenApp": false,
+      "onlyShownOnCommunication": false,
+      "watchface": true
+    }
+  },
+  "private": false,
+  "version": "2.1.0"
+}
