@@ -1,10 +1,11 @@
+
 /**
-* @Author: Burgy Benjamin <minidfx>
-* @Date:   2016-03-22T20:22:31+01:00
-* @Email:  benjamin.burgy@gmail.com
-* @Last modified by:   minidfx
-* @Last modified time: 2016-10-09T16:53:15+02:00
-*/
+ * @Author: Burgy Benjamin
+ * @Date:   2016-02-16T19:20:15+01:00
+ * @Email:  benjamin@burgy.swiss
+ * @Last modified by:   benjamin
+ * @Last modified time: 2016-10-09T16:53:21+02:00
+ */
 
 #include <pebble.h>
 

@@ -1,18 +1,17 @@
 {
   "author": "Couloir42",
-  "dependencies": {
-  },
+  "dependencies": {},
   "keywords": [
-    "ClockLight",
-    "clean watchface",
+    "void",
+    "minimalist",
     "clock"
   ],
-  "name": "ClockLight",
+  "name": "VoicClock",
   "pebble": {
     "capabilities": [],
-    "displayName": "Clock Light",
+    "displayName": "Void Clock",
     "enableMultiJS": false,
-    "messageKeys": { },
+    "messageKeys": {},
     "projectType": "native",
     "resources": {
       "media": [
@@ -30,8 +29,7 @@
     },
     "sdkVersion": "3",
     "targetPlatforms": [
-      "aplite",
-      "basalt"
+      "emery"
     ],
     "uuid": "ddfe6426-7dc9-402f-bed2-edfb6bede323",
     "watchapp": {
@@ -41,5 +39,5 @@
     }
   },
   "private": false,
-  "version": "2.1.0"
+  "version": "3.0.0"
 }

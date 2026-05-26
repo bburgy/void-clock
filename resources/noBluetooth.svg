@@ -1,6 +1,52 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" height="21" width="25.156" version="1.1" y="0px" x="0px" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" viewBox="0 0 25.156267 20.999853">
-    <path stroke="#000000" fill="#000000" d="m10.785 0.49997h-9.1424c-0.7306 0-1.1426 0.39943-1.1426 1.1429v17.714c0 0.744 0.412 1.143 1.1428 1.143h9.1429c0.73248 0 1.1429-0.39886 1.1429-1.1429v-17.714c-0.001-0.7436-0.412-1.143-1.144-1.143zm0 16.105h-9.1429v-12h9.1429z"/>
-    <path stroke="#000000" fill="#000000" d="m15.265 5.0871 7.45 10.802z" />
-    <path stroke="#000000" fill="#000000" d="m22.739 5.1104-7.498 10.802z" />
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xml:space="preserve"
+   height="20.999678"
+   width="12.428468"
+   version="1.1"
+   y="0px"
+   x="0px"
+   viewBox="0 0 12.4286 20.999531"
+   id="svg3"
+   sodipodi:docname="noBluetooth.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs3" /><sodipodi:namedview
+   id="namedview3"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="57.428571"
+   inkscape:cx="12.572139"
+   inkscape:cy="10.5"
+   inkscape:window-width="3440"
+   inkscape:window-height="1408"
+   inkscape:window-x="0"
+   inkscape:window-y="0"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="svg3" />
+    <path
+   stroke="#000000"
+   fill="#000000"
+   d="M 10.785,0.49981511 H 1.6426 c -0.7306,0 -1.1426,0.39943 -1.1426,1.14289999 V 19.356715 c 0,0.744 0.412,1.143 1.1428,1.143 h 9.1429 c 0.73248,0 1.1429,-0.39886 1.1429,-1.1429 V 1.6428151 c -10e-4,-0.74359999 -0.412,-1.14299999 -1.144,-1.14299999 z m 0,16.10499989 H 1.6421 V 4.6048151 h 9.1429 z"
+   id="path1" />
+    
+    <g
+   id="g3"
+   transform="matrix(0.77813657,0,0,0.77813657,-8.5625135,2.3290453)"><path
+     stroke="#000000"
+     fill="#000000"
+     d="m 15.265,5.0871 7.45,10.802 z"
+     id="path2" /><path
+     stroke="#000000"
+     fill="#000000"
+     d="m 22.739,5.1104 -7.498,10.802 z"
+     id="path3" /></g>
 </svg>
