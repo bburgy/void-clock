@@ -22,7 +22,7 @@ static Layer *ptr_empty_battery_layer;
 static GDrawCommandImage *ptr_bluetooth_icon;
 static GDrawCommandImage *ptr_empty_battery_icon;
 
-static GFont milford_font_30;
+static GFont ptr_milford_font_30;
 
 static GRect window_bounds;
 
@@ -38,7 +38,9 @@ static status_t pebbleAppStatus = S_FALSE;
 static status_t isInitialized = S_FALSE;
 
 static void draw_battery_line_callback(Layer *layer, GContext *context) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the battery line ...");
+#endif
 
   uint8_t lineHeight = charge_percent * window_bounds.size.h / 100;
   GRect rect_bounds = GRect(0, window_bounds.size.h - lineHeight,
@@ -50,22 +52,30 @@ static void draw_battery_line_callback(Layer *layer, GContext *context) {
   // Fill rectangle
   graphics_fill_rect(context, rect_bounds, 0, GCornersAll);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void draw_line_callback(Layer *layer, GContext *context) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the line ...");
+#endif
 
   GPoint start = GPoint(0, 0);
   GPoint end = GPoint(window_bounds.size.w * 0.9, 0);
 
   graphics_draw_line(context, start, end);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void draw_bluetooth_callback(Layer *layer, GContext *context) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing bluetooth icon layer ...");
+#endif
 
   // Set the origin offset from the context for drawing the image
   GPoint origin = GPoint(0, 0);
@@ -73,11 +83,15 @@ static void draw_bluetooth_callback(Layer *layer, GContext *context) {
   // Draw the GDrawCommandImage to the GContext
   gdraw_command_image_draw(context, ptr_bluetooth_icon, origin);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void draw_empty_battery_callback(Layer *layer, GContext *context) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing empty battery icon layer ...");
+#endif
 
   // Set the origin offset from the context for drawing the image
   GPoint origin = GPoint(0, 0);
@@ -85,11 +99,15 @@ static void draw_empty_battery_callback(Layer *layer, GContext *context) {
   // Draw the GDrawCommandImage to the GContext
   gdraw_command_image_draw(context, ptr_empty_battery_icon, origin);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_battery_line_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing the battery line layer ...");
+#endif
 
   ptr_battery_layer =
       layer_create(GRect(window_bounds.size.w - battery_line_width, 0,
@@ -97,73 +115,95 @@ static void prepare_battery_line_layer() {
   layer_set_update_proc(ptr_battery_layer, draw_battery_line_callback);
   layer_add_child(ptr_window_layer, ptr_battery_layer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_date_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the date ...");
+#endif
 
   ptr_date_layer =
       text_layer_create(GRect(text_padding_left, top_padding,
                               window_bounds.size.w - text_padding_left, 37));
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Date layer pointer initialized: %p",
           ptr_date_layer);
+#endif
 
   // Improve the layout to be more like a watchface
   text_layer_set_background_color(ptr_date_layer, GColorClear);
   text_layer_set_text_color(ptr_date_layer, GColorBlack);
-  text_layer_set_font(ptr_date_layer, milford_font_30);
+  text_layer_set_font(ptr_date_layer, ptr_milford_font_30);
   text_layer_set_text_alignment(ptr_date_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
   layer_add_child(ptr_window_layer, text_layer_get_layer(ptr_date_layer));
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_weekday_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the week of day ...");
+#endif
 
   ptr_week_day_layer =
       text_layer_create(GRect(text_padding_left, top_padding + 30,
                               window_bounds.size.w - text_padding_left, 37));
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Week layer pointer initialized: %p",
           ptr_week_day_layer);
+#endif
 
   // Improve the layout to be more like a watchface
   text_layer_set_background_color(ptr_week_day_layer, GColorClear);
   text_layer_set_text_color(ptr_week_day_layer, GColorBlack);
-  text_layer_set_font(ptr_week_day_layer, milford_font_30);
+  text_layer_set_font(ptr_week_day_layer, ptr_milford_font_30);
   text_layer_set_text_alignment(ptr_week_day_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
   layer_add_child(ptr_window_layer, text_layer_get_layer(ptr_week_day_layer));
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_line_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing the line layer ...");
+#endif
 
   ptr_line_layer =
       layer_create(GRect(0, top_padding + 72, window_bounds.size.w * 0.9, 1));
   layer_set_update_proc(ptr_line_layer, draw_line_callback);
   layer_add_child(ptr_window_layer, ptr_line_layer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_time_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the time ...");
+#endif
 
   ptr_time_layer =
       text_layer_create(GRect(text_padding_left, top_padding + 67,
                               window_bounds.size.w - text_padding_left, 60));
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Time layer pointer initialized: %p",
           ptr_time_layer);
+#endif
 
   // Improve the layout to be more like a watchface
   text_layer_set_background_color(ptr_time_layer, GColorClear);
@@ -175,28 +215,40 @@ static void prepare_time_layer() {
   // Add it as a child layer to the Window's root layer
   layer_add_child(ptr_window_layer, text_layer_get_layer(ptr_time_layer));
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void update_empty_battery_icon(status_t isEmpty) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Updating the battery icon ...");
+#endif
 
   layer_set_hidden(ptr_empty_battery_layer, !isEmpty);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void update_battery_line(uint8_t percent) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Updating the battery line ...");
+#endif
 
   charge_percent = percent;
   layer_mark_dirty(ptr_battery_layer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_bluetooth_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing bluetooth icon layer ...");
+#endif
 
   int width = 15;
   int height = 21;
@@ -212,11 +264,15 @@ static void prepare_bluetooth_layer() {
   // Add to parent Window
   layer_add_child(ptr_window_layer, ptr_bluetooth_layer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 static void prepare_empty_battery_layer() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing empty battery icon layer ...");
+#endif
 
   int width = 16;
   int height = 12;
@@ -232,11 +288,15 @@ static void prepare_empty_battery_layer() {
   // Add to parent Window
   layer_add_child(ptr_window_layer, ptr_empty_battery_layer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 void prepare_layers() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing layers ...");
+#endif
 
   prepare_bluetooth_layer();
   prepare_empty_battery_layer();
@@ -246,34 +306,38 @@ void prepare_layers() {
   prepare_weekday_layer();
   prepare_line_layer();
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 void setToReady(status_t state) {
   isInitialized = state;
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "The watchface is completely loaded.");
+#endif
 }
 
 void load_resources() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Loading resources ...");
+#endif
 
   // Create the object from resource file
   ptr_bluetooth_icon = gdraw_command_image_create_with_resource(NO_BLUETOOTH);
   ptr_empty_battery_icon =
       gdraw_command_image_create_with_resource(EMPTY_BATTERY);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 void handle_app_connection_handler(bool connected) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Pebble app %sconnected",
           connected ? "" : "dis");
-
-  pebbleAppStatus = (status_t)connected;
-
-  if (!pebbleAppStatus && isInitialized) {
-    vibes_double_pulse();
-  }
+#endif
 
   layer_set_hidden(ptr_bluetooth_layer, connected);
 }
@@ -283,11 +347,13 @@ void handle_minute(struct tm *tick_time, TimeUnits units_changed) {
 }
 
 void update_datetime(struct tm *tick_time) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Updating date and time ...");
+#endif
 
-  static char s_time_buffer[8];
-  static char s_date_buffer[15];
-  static char s_week_day_buffer[15];
+  static char s_time_buffer[9];
+  static char s_date_buffer[16];
+  static char s_week_day_buffer[16];
 
   strftime(s_time_buffer, sizeof(s_time_buffer),
            clock_is_24h_style() ? "%H:%M" : "%I:%M", tick_time);
@@ -298,7 +364,9 @@ void update_datetime(struct tm *tick_time) {
   text_layer_set_text(ptr_date_layer, s_date_buffer);
   text_layer_set_text(ptr_week_day_layer, s_week_day_buffer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 void handle_battery(BatteryChargeState charge_state) {
@@ -308,38 +376,52 @@ void handle_battery(BatteryChargeState charge_state) {
 }
 
 void init_window_layer(Window *window) {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Initializing the window ...");
+#endif
 
   // Load custom fonts
-  milford_font_30 =
+  ptr_milford_font_30 =
       fonts_load_custom_font(resource_get_handle(RESOURCE_ID_MILFORD_FONT_30));
 
   // Get information about the Window
   ptr_window_layer = window_get_root_layer(window);
   window_bounds = layer_get_bounds(ptr_window_layer);
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Window layer pointer initialized: %p",
           ptr_window_layer);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Window sizes: %dx%d", window_bounds.size.w,
           window_bounds.size.h);
 
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
 }
 
 void destroy_application_layers() {
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Releasing resources ...");
+#endif
 
+  // Destroy text layers
   text_layer_destroy(ptr_time_layer);
   text_layer_destroy(ptr_date_layer);
   text_layer_destroy(ptr_week_day_layer);
 
+  // Destroy custom layers
   layer_destroy(ptr_line_layer);
   layer_destroy(ptr_battery_layer);
   layer_destroy(ptr_bluetooth_layer);
   layer_destroy(ptr_empty_battery_layer);
 
+  // Destroy image
   gdraw_command_image_destroy(ptr_empty_battery_icon);
   gdraw_command_image_destroy(ptr_bluetooth_icon);
 
+  // Unload the fonts
+  fonts_unload_custom_font(ptr_milford_font_30);
+
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Resource released.");
+#endif
 }

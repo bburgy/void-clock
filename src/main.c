@@ -61,7 +61,9 @@ static void deinit() { window_destroy(window); }
 int main() {
   init();
 
+#ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done initializing, pushed window: %p", window);
+#endif
 
   app_event_loop();
 
