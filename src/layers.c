@@ -22,11 +22,13 @@ static Layer *ptr_empty_battery_layer;
 static GDrawCommandImage *ptr_bluetooth_icon;
 static GDrawCommandImage *ptr_empty_battery_icon;
 
+static GFont milford_font_30;
+
 static GRect window_bounds;
 
 static uint8_t charge_percent = 0;
 static uint8_t text_padding_left = 15;
-static uint8_t battery_line_width = 4;
+static uint8_t battery_line_width = 6;
 static uint8_t top_padding = 35;
 
 static uint32_t NO_BLUETOOTH = 1;
@@ -38,9 +40,9 @@ static status_t isInitialized = S_FALSE;
 static void draw_battery_line_callback(Layer *layer, GContext *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the battery line ...");
 
-  uint8_t lineHeight = charge_percent * window_bounds.size.h / 101;
+  uint8_t lineHeight = charge_percent * window_bounds.size.h / 100;
   GRect rect_bounds = GRect(0, window_bounds.size.h - lineHeight,
-                            battery_line_width, window_bounds.size.h);
+                            battery_line_width, lineHeight);
 
   // Draw a rectangle
   graphics_draw_rect(context, rect_bounds);
@@ -101,9 +103,9 @@ static void prepare_battery_line_layer() {
 static void prepare_date_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the date ...");
 
-  ptr_date_layer = text_layer_create(
-      GRect(text_padding_left, PBL_IF_ROUND_ELSE(top_padding, top_padding - 10),
-            window_bounds.size.w - text_padding_left, 50));
+  ptr_date_layer =
+      text_layer_create(GRect(text_padding_left, top_padding,
+                              window_bounds.size.w - text_padding_left, 37));
 
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Date layer pointer initialized: %p",
           ptr_date_layer);
@@ -111,8 +113,7 @@ static void prepare_date_layer() {
   // Improve the layout to be more like a watchface
   text_layer_set_background_color(ptr_date_layer, GColorClear);
   text_layer_set_text_color(ptr_date_layer, GColorBlack);
-  text_layer_set_font(ptr_date_layer,
-                      fonts_get_system_font(FONT_KEY_BITHAM_42_LIGHT));
+  text_layer_set_font(ptr_date_layer, milford_font_30);
   text_layer_set_text_alignment(ptr_date_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
@@ -124,9 +125,9 @@ static void prepare_date_layer() {
 static void prepare_weekday_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the week of day ...");
 
-  ptr_week_day_layer = text_layer_create(GRect(
-      text_padding_left, PBL_IF_ROUND_ELSE(top_padding + 20, top_padding + 30),
-      window_bounds.size.w - text_padding_left, 32));
+  ptr_week_day_layer =
+      text_layer_create(GRect(text_padding_left, top_padding + 30,
+                              window_bounds.size.w - text_padding_left, 37));
 
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Week layer pointer initialized: %p",
           ptr_week_day_layer);
@@ -134,8 +135,7 @@ static void prepare_weekday_layer() {
   // Improve the layout to be more like a watchface
   text_layer_set_background_color(ptr_week_day_layer, GColorClear);
   text_layer_set_text_color(ptr_week_day_layer, GColorBlack);
-  text_layer_set_font(ptr_week_day_layer,
-                      fonts_get_system_font(FONT_KEY_GOTHIC_28));
+  text_layer_set_font(ptr_week_day_layer, milford_font_30);
   text_layer_set_text_alignment(ptr_week_day_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
@@ -148,7 +148,7 @@ static void prepare_line_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing the line layer ...");
 
   ptr_line_layer =
-      layer_create(GRect(0, top_padding + 70, window_bounds.size.w * 0.9, 1));
+      layer_create(GRect(0, top_padding + 72, window_bounds.size.w * 0.9, 1));
   layer_set_update_proc(ptr_line_layer, draw_line_callback);
   layer_add_child(ptr_window_layer, ptr_line_layer);
 
@@ -158,9 +158,9 @@ static void prepare_line_layer() {
 static void prepare_time_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the time ...");
 
-  ptr_time_layer = text_layer_create(GRect(
-      text_padding_left, PBL_IF_ROUND_ELSE(top_padding + 55, top_padding + 65),
-      window_bounds.size.w - text_padding_left, 60));
+  ptr_time_layer =
+      text_layer_create(GRect(text_padding_left, top_padding + 67,
+                              window_bounds.size.w - text_padding_left, 60));
 
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Time layer pointer initialized: %p",
           ptr_time_layer);
@@ -178,7 +178,7 @@ static void prepare_time_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
 }
 
-static void update_empty_icon(status_t isEmpty) {
+static void update_empty_battery_icon(status_t isEmpty) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Updating the battery icon ...");
 
   layer_set_hidden(ptr_empty_battery_layer, !isEmpty);
@@ -200,7 +200,7 @@ static void prepare_bluetooth_layer() {
 
   int width = 15;
   int height = 21;
-  int x = 100;
+  int x = window_bounds.size.w - 50;
   int y = 3;
 
   // Create the canvas Layer
@@ -218,10 +218,10 @@ static void prepare_bluetooth_layer() {
 static void prepare_empty_battery_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing empty battery icon layer ...");
 
-  int width = 24;
-  int height = 15;
-  int x = 118;
-  int y = 3;
+  int width = 16;
+  int height = 12;
+  int x = window_bounds.size.w - 30;
+  int y = 7;
 
   // Create the canvas Layer
   ptr_empty_battery_layer = layer_create(GRect(x, y, width, height));
@@ -304,11 +304,15 @@ void update_datetime(struct tm *tick_time) {
 void handle_battery(BatteryChargeState charge_state) {
   unsigned int percent = charge_state.charge_percent;
   update_battery_line(percent);
-  update_empty_icon(percent == 0);
+  update_empty_battery_icon(percent < 5);
 }
 
 void init_window_layer(Window *window) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Initializing the window ...");
+
+  // Load custom fonts
+  milford_font_30 =
+      fonts_load_custom_font(resource_get_handle(RESOURCE_ID_MILFORD_FONT_30));
 
   // Get information about the Window
   ptr_window_layer = window_get_root_layer(window);
