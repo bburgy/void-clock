@@ -6,7 +6,7 @@
     "minimalist",
     "clock"
   ],
-  "name": "VoicClock",
+  "name": "VoidClock",
   "pebble": {
     "capabilities": [],
     "displayName": "Void Clock",
@@ -24,6 +24,12 @@
           "file": "emptyBattery.pdc",
           "name": "EMPTY_BATTERY",
           "type": "raw"
+        },
+        {
+          "file": "MilfordCondensed-BG1w.ttf",
+          "name": "MILFORD_FONT_30",
+          "type": "font",
+          "characterRegex": "[A-Za-z0-9 ]"
         }
       ]
     },
