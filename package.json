@@ -37,7 +37,7 @@
     "targetPlatforms": [
       "emery"
     ],
-    "uuid": "ddfe6426-7dc9-402f-bed2-edfb6bede323",
+    "uuid": "e14e7d92-c30a-471c-a3ef-9e7e3f27d142",
     "watchapp": {
       "hiddenApp": false,
       "onlyShownOnCommunication": false,
@@ -45,5 +45,5 @@
     }
   },
   "private": false,
-  "version": "3.0.0"
+  "version": "1.0.0"
 }
