@@ -34,8 +34,19 @@ static uint8_t top_padding = 35;
 static uint32_t NO_BLUETOOTH = 1;
 static uint32_t EMPTY_BATTERY = 2;
 
-static status_t pebbleAppStatus = S_FALSE;
-static status_t isInitialized = S_FALSE;
+// Time (ms) the watch waits before showing the "no Bluetooth" icon after the
+// firmware reports a disconnection. The firmware already debounces the
+// connection for 25 seconds, so this extra delay avoids flashing the icon on
+// brief drops (e.g. PebbleOS 4.17.0 connection flapping) while still showing
+// it for real, sustained disconnections.
+#define BT_DISCONNECT_DEBOUNCE_MS 60000
+
+// NULL when no debounce timer is pending, otherwise the running AppTimer.
+static AppTimer *s_bt_debounce_timer = NULL;
+// Whether the "no Bluetooth" icon is currently displayed. The icon stays
+// hidden while a debounce timer is pending, even if the OS reports a
+// disconnection.
+static bool s_bt_icon_shown = false;
 
 static void draw_battery_line_callback(Layer *layer, GContext *context) {
 #ifdef PBL_DEBUG
@@ -311,13 +322,6 @@ void prepare_layers() {
 #endif
 }
 
-void setToReady(status_t state) {
-  isInitialized = state;
-#ifdef PBL_DEBUG
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "The watchface is completely loaded.");
-#endif
-}
-
 void load_resources() {
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Loading resources ...");
@@ -333,17 +337,70 @@ void load_resources() {
 #endif
 }
 
+// Set the visibility of the "no Bluetooth" icon and track its state.
+static void bt_set_icon_shown(bool shown) {
+  s_bt_icon_shown = shown;
+  layer_set_hidden(ptr_bluetooth_layer, !shown);
+}
+
+// Called when the debounce timer expires. The OS reported a disconnection more
+// than BT_DISCONNECT_DEBOUNCE_MS ago; show the "no Bluetooth" icon only if the
+// connection is still down at this moment. This deliberately does not call
+// handle_app_connection_handler() so it can never re-arm a new timer.
+static void bt_debounce_callback(void *data) {
+  s_bt_debounce_timer = NULL;
+
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Bluetooth debounce timer fired.");
+#endif
+
+  if (!connection_service_peek_pebble_app_connection()) {
+    bt_set_icon_shown(true);
+  }
+}
+
+// Cancel a pending debounce timer, if any. Called when the window unloads to
+// avoid leaving an AppTimer running on a dead window.
+void bt_debounce_cancel(void) {
+  if (s_bt_debounce_timer) {
+    app_timer_cancel(s_bt_debounce_timer);
+    s_bt_debounce_timer = NULL;
+  }
+}
+
+// Re-read the current Pebble app connection state and refresh the icon. This
+// is called on every minute tick so the icon can never get stuck showing a
+// stale state (e.g. if a connection callback was missed).
+void bt_sync_status(void) {
+  handle_app_connection_handler(
+      connection_service_peek_pebble_app_connection());
+}
+
 void handle_app_connection_handler(bool connected) {
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Pebble app %sconnected",
           connected ? "" : "dis");
 #endif
 
-  layer_set_hidden(ptr_bluetooth_layer, connected);
+  if (connected) {
+    // Connected (again): cancel any pending debounce timer and hide the icon
+    // immediately.
+    bt_debounce_cancel();
+    bt_set_icon_shown(false);
+  } else {
+    // Disconnected: start the debounce timer (if not already running and the
+    // icon is not already shown). If the connection comes back before the
+    // timer expires, the icon never appears.
+    if (!s_bt_debounce_timer && !s_bt_icon_shown) {
+      s_bt_debounce_timer = app_timer_register(
+          BT_DISCONNECT_DEBOUNCE_MS, bt_debounce_callback, NULL);
+    }
+  }
 }
 
 void handle_minute(struct tm *tick_time, TimeUnits units_changed) {
   update_datetime(tick_time);
+  bt_sync_status();
 }
 
 void update_datetime(struct tm *tick_time) {
