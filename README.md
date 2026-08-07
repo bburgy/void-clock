@@ -11,7 +11,7 @@ Clean, essential, and relentlessly functional.
 
 ### 1.0.1 - Bluetooth Connection Stability Hotfix
 
-- **Added** 60-second Bluetooth disconnect debounce to prevent spurious
+- **Added** 15-second Bluetooth disconnect debounce to prevent spurious
   "no Bluetooth" icon flashing caused by PebbleOS standby mode
   power-management (especially on Pebble Time 2 / Emery).
 - **Added** live re-check in the debounce timer — verifies the actual

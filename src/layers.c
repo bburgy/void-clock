@@ -34,37 +34,27 @@ static uint8_t top_padding = 35;
 static uint32_t NO_BLUETOOTH = 1;
 static uint32_t EMPTY_BATTERY = 2;
 
-// Time (ms) before we show the "no Bluetooth" icon after the OS reports a
-// disconnection.
+// Bluetooth disconnect debounce (ms).
 //
-// Why this exists (PebbleOS Changelog context for Emery / PT2):
+// The firmware internally debounces disconnections for ~25 s, but a further
+// app-level delay prevents spurious icon flashing on transient BLE drops.
 //
-//  * core35 (late 2025)           — Standby mode enabled by default.
-//  * v4.9.175 (May 2026)          — "Standby mode threshold has been reduced,
-//                                    it was causing spurious BT disconnections"
-//                                    plus "Speculative fix for an annoying
-//                                    Bluetooth issue causing disconnects and bad
-//                                    battery life on PT2".
-//  * v4.9.163 (April 2026)        — "Fixed an infinite disconnect/connect loop
-//                                    on iOS".
-//  * core31                       — Adjusted BLE advertising / connection
-//                                    parameters as part of Apple accessory
-//                                    guidelines compliance.
-//  * v4.12.0 (June 2026)          — "Watch now advertises as BLE-capable only
-//                                    (BR/EDR not supported)".
-//  * v4.31.1 (July 2026)          — Updated to NimBLE 1.10.0.
+// Firmware evolution context:
+//   * v4.9.175 (May 2026)  — "Speculative fix" for standby spurious disconnects.
+//   * v4.31.2 (Jul 2026)  — "Several power consumption bug fixes."
+//   * v4.33.0 (Aug 2026)  — "Fixed battery drain from fast advertising sticking
+//                            on after airplane mode."
 //
-// The root cause is standby mode too aggressively powering down the BLE radio.
-// Despite firmware improvements, brief link drops still occur at the edge of
-// range or during radio re-tuning (especially on Pebble Time 2 / Emery). The
-// firmware itself reportedly debounces internally for ~25 s, so a further 60 s
-// at the app layer prevents flashing the icon for transient drops while still
-// alerting the user to genuinely sustained disconnections.
+// The stack is now much more stable, so a SHORT debounce is sufficient to
+// smooth remaining edge-of-range twitches without hiding real disconnections.
+// Tunable as needed:
 //
-// See bt_debounce_callback() for the live re-check that fires when this timer
-// expires — it peek()s the actual state rather than assuming the stale callback
-// value is still current.
-#define BT_DISCONNECT_DEBOUNCE_MS 60000
+//   0     — no debounce; instant feedback (latest firmware only)
+//   15000 — catches brief twitches, fast real-disconnect feedback (RECOMMENDED)
+//   60000 — maximum smoothing for very old firmware (overkill post-v4.31)
+//
+// See bt_debounce_callback() for the live re-check on expiry.
+#define BT_DISCONNECT_DEBOUNCE_MS 15000
 
 // NULL when no debounce timer is pending, otherwise the running AppTimer.
 static AppTimer *s_bt_debounce_timer = NULL;
