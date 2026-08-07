@@ -9,20 +9,20 @@
 #include "layers.h"
 #include <pebble.h>
 
-static TextLayer *ptr_time_layer;
-static TextLayer *ptr_date_layer;
-static TextLayer *ptr_week_day_layer;
+static TextLayer *time_layer;
+static TextLayer *date_layer;
+static TextLayer *week_day_layer;
 
-static Layer *ptr_line_layer;
-static Layer *ptr_battery_layer;
-static Layer *ptr_window_layer;
-static Layer *ptr_bluetooth_layer;
-static Layer *ptr_empty_battery_layer;
+static Layer *line_layer;
+static Layer *battery_layer;
+static Layer *window_layer;
+static Layer *bluetooth_layer;
+static Layer *empty_battery_layer;
 
-static GDrawCommandImage *ptr_bluetooth_icon;
-static GDrawCommandImage *ptr_empty_battery_icon;
+static GDrawCommandImage *bluetooth_icon;
+static GDrawCommandImage *empty_battery_icon;
 
-static GFont ptr_milford_font_30;
+static GFont milford_font_30;
 
 static GRect window_bounds;
 
@@ -53,15 +53,15 @@ static uint32_t EMPTY_BATTERY = 2;
 //   15000 — catches brief twitches, fast real-disconnect feedback (RECOMMENDED)
 //   60000 — maximum smoothing for very old firmware (overkill post-v4.31)
 //
-// See bt_debounce_callback() for the live re-check on expiry.
-#define BT_DISCONNECT_DEBOUNCE_MS 15000
+// See bluetooth_debounce_callback() for the live re-check on expiry.
+#define BLUETOOTH_DISCONNECT_DEBOUNCE_MS 15000
 
 // NULL when no debounce timer is pending, otherwise the running AppTimer.
-static AppTimer *s_bt_debounce_timer = NULL;
+static AppTimer *bluetooth_debounce_timer = NULL;
 // Whether the "no Bluetooth" icon is currently displayed. The icon stays
 // hidden while a debounce timer is pending, even if the OS reports a
 // disconnection.
-static bool s_bt_icon_shown = false;
+static bool bluetooth_icon_shown = false;
 
 static void draw_battery_line_callback(Layer *layer, GContext *context) {
 #ifdef PBL_DEBUG
@@ -107,7 +107,7 @@ static void draw_bluetooth_callback(Layer *layer, GContext *context) {
   GPoint origin = GPoint(0, 0);
 
   // Draw the GDrawCommandImage to the GContext
-  gdraw_command_image_draw(context, ptr_bluetooth_icon, origin);
+  gdraw_command_image_draw(context, bluetooth_icon, origin);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -123,7 +123,7 @@ static void draw_empty_battery_callback(Layer *layer, GContext *context) {
   GPoint origin = GPoint(0, 0);
 
   // Draw the GDrawCommandImage to the GContext
-  gdraw_command_image_draw(context, ptr_empty_battery_icon, origin);
+  gdraw_command_image_draw(context, empty_battery_icon, origin);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -135,11 +135,11 @@ static void prepare_battery_line_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing the battery line layer ...");
 #endif
 
-  ptr_battery_layer =
+  battery_layer =
       layer_create(GRect(window_bounds.size.w - battery_line_width, 0,
                          battery_line_width, window_bounds.size.h));
-  layer_set_update_proc(ptr_battery_layer, draw_battery_line_callback);
-  layer_add_child(ptr_window_layer, ptr_battery_layer);
+  layer_set_update_proc(battery_layer, draw_battery_line_callback);
+  layer_add_child(window_layer, battery_layer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -151,23 +151,23 @@ static void prepare_date_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the date ...");
 #endif
 
-  ptr_date_layer =
+  date_layer =
       text_layer_create(GRect(text_padding_left, top_padding,
                               window_bounds.size.w - text_padding_left, 37));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Date layer pointer initialized: %p",
-          ptr_date_layer);
+          date_layer);
 #endif
 
   // Improve the layout to be more like a watchface
-  text_layer_set_background_color(ptr_date_layer, GColorClear);
-  text_layer_set_text_color(ptr_date_layer, GColorBlack);
-  text_layer_set_font(ptr_date_layer, ptr_milford_font_30);
-  text_layer_set_text_alignment(ptr_date_layer, GTextAlignmentLeft);
+  text_layer_set_background_color(date_layer, GColorClear);
+  text_layer_set_text_color(date_layer, GColorBlack);
+  text_layer_set_font(date_layer, milford_font_30);
+  text_layer_set_text_alignment(date_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
-  layer_add_child(ptr_window_layer, text_layer_get_layer(ptr_date_layer));
+  layer_add_child(window_layer, text_layer_get_layer(date_layer));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -179,23 +179,23 @@ static void prepare_weekday_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the week of day ...");
 #endif
 
-  ptr_week_day_layer =
+  week_day_layer =
       text_layer_create(GRect(text_padding_left, top_padding + 30,
                               window_bounds.size.w - text_padding_left, 37));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Week layer pointer initialized: %p",
-          ptr_week_day_layer);
+          week_day_layer);
 #endif
 
   // Improve the layout to be more like a watchface
-  text_layer_set_background_color(ptr_week_day_layer, GColorClear);
-  text_layer_set_text_color(ptr_week_day_layer, GColorBlack);
-  text_layer_set_font(ptr_week_day_layer, ptr_milford_font_30);
-  text_layer_set_text_alignment(ptr_week_day_layer, GTextAlignmentLeft);
+  text_layer_set_background_color(week_day_layer, GColorClear);
+  text_layer_set_text_color(week_day_layer, GColorBlack);
+  text_layer_set_font(week_day_layer, milford_font_30);
+  text_layer_set_text_alignment(week_day_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
-  layer_add_child(ptr_window_layer, text_layer_get_layer(ptr_week_day_layer));
+  layer_add_child(window_layer, text_layer_get_layer(week_day_layer));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -207,10 +207,10 @@ static void prepare_line_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing the line layer ...");
 #endif
 
-  ptr_line_layer =
+  line_layer =
       layer_create(GRect(0, top_padding + 72, window_bounds.size.w * 0.9, 1));
-  layer_set_update_proc(ptr_line_layer, draw_line_callback);
-  layer_add_child(ptr_window_layer, ptr_line_layer);
+  layer_set_update_proc(line_layer, draw_line_callback);
+  layer_add_child(window_layer, line_layer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -222,24 +222,24 @@ static void prepare_time_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing the time ...");
 #endif
 
-  ptr_time_layer =
+  time_layer =
       text_layer_create(GRect(text_padding_left, top_padding + 67,
                               window_bounds.size.w - text_padding_left, 60));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Time layer pointer initialized: %p",
-          ptr_time_layer);
+          time_layer);
 #endif
 
   // Improve the layout to be more like a watchface
-  text_layer_set_background_color(ptr_time_layer, GColorClear);
-  text_layer_set_text_color(ptr_time_layer, GColorBlack);
-  text_layer_set_font(ptr_time_layer,
+  text_layer_set_background_color(time_layer, GColorClear);
+  text_layer_set_text_color(time_layer, GColorBlack);
+  text_layer_set_font(time_layer,
                       fonts_get_system_font(FONT_KEY_LECO_60_NUMBERS_AM_PM));
-  text_layer_set_text_alignment(ptr_time_layer, GTextAlignmentLeft);
+  text_layer_set_text_alignment(time_layer, GTextAlignmentLeft);
 
   // Add it as a child layer to the Window's root layer
-  layer_add_child(ptr_window_layer, text_layer_get_layer(ptr_time_layer));
+  layer_add_child(window_layer, text_layer_get_layer(time_layer));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -251,7 +251,7 @@ static void update_empty_battery_icon(status_t isEmpty) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Updating the battery icon ...");
 #endif
 
-  layer_set_hidden(ptr_empty_battery_layer, !isEmpty);
+  layer_set_hidden(empty_battery_layer, !isEmpty);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -264,7 +264,7 @@ static void update_battery_line(uint8_t percent) {
 #endif
 
   charge_percent = percent;
-  layer_mark_dirty(ptr_battery_layer);
+  layer_mark_dirty(battery_layer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -282,13 +282,13 @@ static void prepare_bluetooth_layer() {
   int y = 3;
 
   // Create the canvas Layer
-  ptr_bluetooth_layer = layer_create(GRect(x, y, width, height));
+  bluetooth_layer = layer_create(GRect(x, y, width, height));
 
   // Set the LayerUpdateProc
-  layer_set_update_proc(ptr_bluetooth_layer, draw_bluetooth_callback);
+  layer_set_update_proc(bluetooth_layer, draw_bluetooth_callback);
 
   // Add to parent Window
-  layer_add_child(ptr_window_layer, ptr_bluetooth_layer);
+  layer_add_child(window_layer, bluetooth_layer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -306,13 +306,13 @@ static void prepare_empty_battery_layer() {
   int y = 7;
 
   // Create the canvas Layer
-  ptr_empty_battery_layer = layer_create(GRect(x, y, width, height));
+  empty_battery_layer = layer_create(GRect(x, y, width, height));
 
   // Set the LayerUpdateProc
-  layer_set_update_proc(ptr_empty_battery_layer, draw_empty_battery_callback);
+  layer_set_update_proc(empty_battery_layer, draw_empty_battery_callback);
 
   // Add to parent Window
-  layer_add_child(ptr_window_layer, ptr_empty_battery_layer);
+  layer_add_child(window_layer, empty_battery_layer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -343,8 +343,8 @@ void load_resources() {
 #endif
 
   // Create the object from resource file
-  ptr_bluetooth_icon = gdraw_command_image_create_with_resource(NO_BLUETOOTH);
-  ptr_empty_battery_icon =
+  bluetooth_icon = gdraw_command_image_create_with_resource(NO_BLUETOOTH);
+  empty_battery_icon =
       gdraw_command_image_create_with_resource(EMPTY_BATTERY);
 
 #ifdef PBL_DEBUG
@@ -353,33 +353,33 @@ void load_resources() {
 }
 
 // Set the visibility of the "no Bluetooth" icon and track its state.
-static void bt_set_icon_shown(bool shown) {
-  s_bt_icon_shown = shown;
-  layer_set_hidden(ptr_bluetooth_layer, !shown);
+static void bluetooth_set_icon_shown(bool shown) {
+  bluetooth_icon_shown = shown;
+  layer_set_hidden(bluetooth_layer, !shown);
 }
 
 // Called when the debounce timer expires. The OS reported a disconnection more
-// than BT_DISCONNECT_DEBOUNCE_MS ago; show the "no Bluetooth" icon only if the
+// than BLUETOOTH_DISCONNECT_DEBOUNCE_MS ago; show the "no Bluetooth" icon only if the
 // connection is still down at this moment. This deliberately does not call
 // handle_app_connection_handler() so it can never re-arm a new timer.
-static void bt_debounce_callback(void *data) {
-  s_bt_debounce_timer = NULL;
+static void bluetooth_debounce_callback(void *data) {
+  bluetooth_debounce_timer = NULL;
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Bluetooth debounce timer fired.");
 #endif
 
   if (!connection_service_peek_pebble_app_connection()) {
-    bt_set_icon_shown(true);
+    bluetooth_set_icon_shown(true);
   }
 }
 
 // Cancel a pending debounce timer, if any. Called when the window unloads to
 // avoid leaving an AppTimer running on a dead window.
-void bt_debounce_cancel(void) {
-  if (s_bt_debounce_timer) {
-    app_timer_cancel(s_bt_debounce_timer);
-    s_bt_debounce_timer = NULL;
+void bluetooth_debounce_cancel(void) {
+  if (bluetooth_debounce_timer) {
+    app_timer_cancel(bluetooth_debounce_timer);
+    bluetooth_debounce_timer = NULL;
   }
 }
 
@@ -392,15 +392,15 @@ void handle_app_connection_handler(bool connected) {
   if (connected) {
     // Connected (again): cancel any pending debounce timer and hide the icon
     // immediately.
-    bt_debounce_cancel();
-    bt_set_icon_shown(false);
+    bluetooth_debounce_cancel();
+    bluetooth_set_icon_shown(false);
   } else {
     // Disconnected: start the debounce timer (if not already running and the
     // icon is not already shown). If the connection comes back before the
     // timer expires, the icon never appears.
-    if (!s_bt_debounce_timer && !s_bt_icon_shown) {
-      s_bt_debounce_timer = app_timer_register(
-          BT_DISCONNECT_DEBOUNCE_MS, bt_debounce_callback, NULL);
+    if (!bluetooth_debounce_timer && !bluetooth_icon_shown) {
+      bluetooth_debounce_timer = app_timer_register(
+          BLUETOOTH_DISCONNECT_DEBOUNCE_MS, bluetooth_debounce_callback, NULL);
     }
   }
 }
@@ -430,9 +430,9 @@ void update_datetime(struct tm *tick_time) {
   strftime(s_date_buffer, sizeof(s_date_buffer), "%B %d", tick_time);
   strftime(s_week_day_buffer, sizeof(s_week_day_buffer), "%A", tick_time);
 
-  text_layer_set_text(ptr_time_layer, s_time_buffer);
-  text_layer_set_text(ptr_date_layer, s_date_buffer);
-  text_layer_set_text(ptr_week_day_layer, s_week_day_buffer);
+  text_layer_set_text(time_layer, s_time_buffer);
+  text_layer_set_text(date_layer, s_date_buffer);
+  text_layer_set_text(week_day_layer, s_week_day_buffer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -451,16 +451,16 @@ void init_window_layer(Window *window) {
 #endif
 
   // Load custom fonts
-  ptr_milford_font_30 =
+  milford_font_30 =
       fonts_load_custom_font(resource_get_handle(RESOURCE_ID_MILFORD_FONT_30));
 
   // Get information about the Window
-  ptr_window_layer = window_get_root_layer(window);
-  window_bounds = layer_get_bounds(ptr_window_layer);
+  window_layer = window_get_root_layer(window);
+  window_bounds = layer_get_bounds(window_layer);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG_VERBOSE, "Window layer pointer initialized: %p",
-          ptr_window_layer);
+          window_layer);
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Window sizes: %dx%d", window_bounds.size.w,
           window_bounds.size.h);
 
@@ -474,22 +474,22 @@ void destroy_application_layers() {
 #endif
 
   // Destroy text layers
-  text_layer_destroy(ptr_time_layer);
-  text_layer_destroy(ptr_date_layer);
-  text_layer_destroy(ptr_week_day_layer);
+  text_layer_destroy(time_layer);
+  text_layer_destroy(date_layer);
+  text_layer_destroy(week_day_layer);
 
   // Destroy custom layers
-  layer_destroy(ptr_line_layer);
-  layer_destroy(ptr_battery_layer);
-  layer_destroy(ptr_bluetooth_layer);
-  layer_destroy(ptr_empty_battery_layer);
+  layer_destroy(line_layer);
+  layer_destroy(battery_layer);
+  layer_destroy(bluetooth_layer);
+  layer_destroy(empty_battery_layer);
 
   // Destroy image
-  gdraw_command_image_destroy(ptr_empty_battery_icon);
-  gdraw_command_image_destroy(ptr_bluetooth_icon);
+  gdraw_command_image_destroy(empty_battery_icon);
+  gdraw_command_image_destroy(bluetooth_icon);
 
   // Unload the fonts
-  fonts_unload_custom_font(ptr_milford_font_30);
+  fonts_unload_custom_font(milford_font_30);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Resource released.");

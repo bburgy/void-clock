@@ -39,7 +39,7 @@ static void window_unload(Window *window) {
   tick_timer_service_unsubscribe();
   battery_state_service_unsubscribe();
   connection_service_unsubscribe();
-  bt_debounce_cancel();
+  bluetooth_debounce_cancel();
 
   destroy_application_layers();
 }
