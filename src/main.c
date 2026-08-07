@@ -33,13 +33,13 @@ static void window_load(Window *window) {
   handle_battery(battery_state_service_peek());
   handle_app_connection_handler(
       connection_service_peek_pebble_app_connection());
-
-  setToReady(S_TRUE);
 }
 
 static void window_unload(Window *window) {
   tick_timer_service_unsubscribe();
   battery_state_service_unsubscribe();
+  connection_service_unsubscribe();
+  bluetooth_debounce_cancel();
 
   destroy_application_layers();
 }
