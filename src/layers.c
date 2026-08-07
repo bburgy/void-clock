@@ -34,11 +34,36 @@ static uint8_t top_padding = 35;
 static uint32_t NO_BLUETOOTH = 1;
 static uint32_t EMPTY_BATTERY = 2;
 
-// Time (ms) the watch waits before showing the "no Bluetooth" icon after the
-// firmware reports a disconnection. The firmware already debounces the
-// connection for 25 seconds, so this extra delay avoids flashing the icon on
-// brief drops (e.g. PebbleOS 4.17.0 connection flapping) while still showing
-// it for real, sustained disconnections.
+// Time (ms) before we show the "no Bluetooth" icon after the OS reports a
+// disconnection.
+//
+// Why this exists (PebbleOS Changelog context for Emery / PT2):
+//
+//  * core35 (late 2025)           — Standby mode enabled by default.
+//  * v4.9.175 (May 2026)          — "Standby mode threshold has been reduced,
+//                                    it was causing spurious BT disconnections"
+//                                    plus "Speculative fix for an annoying
+//                                    Bluetooth issue causing disconnects and bad
+//                                    battery life on PT2".
+//  * v4.9.163 (April 2026)        — "Fixed an infinite disconnect/connect loop
+//                                    on iOS".
+//  * core31                       — Adjusted BLE advertising / connection
+//                                    parameters as part of Apple accessory
+//                                    guidelines compliance.
+//  * v4.12.0 (June 2026)          — "Watch now advertises as BLE-capable only
+//                                    (BR/EDR not supported)".
+//  * v4.31.1 (July 2026)          — Updated to NimBLE 1.10.0.
+//
+// The root cause is standby mode too aggressively powering down the BLE radio.
+// Despite firmware improvements, brief link drops still occur at the edge of
+// range or during radio re-tuning (especially on Pebble Time 2 / Emery). The
+// firmware itself reportedly debounces internally for ~25 s, so a further 60 s
+// at the app layer prevents flashing the icon for transient drops while still
+// alerting the user to genuinely sustained disconnections.
+//
+// See bt_debounce_callback() for the live re-check that fires when this timer
+// expires — it peek()s the actual state rather than assuming the stale callback
+// value is still current.
 #define BT_DISCONNECT_DEBOUNCE_MS 60000
 
 // NULL when no debounce timer is pending, otherwise the running AppTimer.
@@ -368,14 +393,6 @@ void bt_debounce_cancel(void) {
   }
 }
 
-// Re-read the current Pebble app connection state and refresh the icon. This
-// is called on every minute tick so the icon can never get stuck showing a
-// stale state (e.g. if a connection callback was missed).
-void bt_sync_status(void) {
-  handle_app_connection_handler(
-      connection_service_peek_pebble_app_connection());
-}
-
 void handle_app_connection_handler(bool connected) {
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Pebble app %sconnected",
@@ -400,7 +417,13 @@ void handle_app_connection_handler(bool connected) {
 
 void handle_minute(struct tm *tick_time, TimeUnits units_changed) {
   update_datetime(tick_time);
-  bt_sync_status();
+  // NOTE: Deliberately NO per-minute Bluetooth resync here.
+  //
+  // PebbleOS v4.30.0 explicitly optimizes for "fewer background wakeups" to
+  // improve battery life ; polling the link every minute would work against
+  // that system-level goal. The connection_service callbacks are reliable;
+  // we trust them completely, and the debounce callback above re-checks live
+  // state before showing the icon, which is cheaper than polling every 60 s.
 }
 
 void update_datetime(struct tm *tick_time) {
