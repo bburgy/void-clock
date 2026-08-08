@@ -9,9 +9,14 @@ Clean, essential, and relentlessly functional.
 
 ## Screenshots
 
-| Normal State | Bluetooth Disconnected |
-|-------------|----------------------|
-| ![Normal](emery_screenshot1.png) | ![No Bluetooth](emery_screenshot2.png) |
+### Normal State
+![Normal State](screenshot_normal.png)
+
+### Bluetooth Disconnected
+![Bluetooth Disconnected](screenshot_bt.png)
+
+### Battery Empty
+![Battery Empty](screenshot_battery.png)
 
 ## Changelog
 
