@@ -7,6 +7,17 @@ battery level, and Bluetooth connection status.
 
 Clean, essential, and relentlessly functional.
 
+## Screenshots
+
+### Normal State
+![Normal State](screenshot_normal.png)
+
+### Bluetooth Disconnected Warning
+![Bluetooth Disconnected](screenshot_bt_disconnected.png)
+
+### Battery Empty Warning
+![Battery Empty](screenshot_battery_empty.png)
+
 ## Changelog
 
 ### 1.0.2 - Redesigned Warning Icons
