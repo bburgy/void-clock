@@ -276,9 +276,9 @@ static void prepare_bluetooth_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing bluetooth icon layer ...");
 #endif
 
-  int width = 15;
-  int height = 21;
-  int x = window_bounds.size.w - 50;
+  int width = 24;
+  int height = 32;
+  int x = window_bounds.size.w - 65;
   int y = 3;
 
   // Create the canvas Layer
@@ -300,10 +300,10 @@ static void prepare_empty_battery_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing empty battery icon layer ...");
 #endif
 
-  int width = 16;
-  int height = 12;
-  int x = window_bounds.size.w - 30;
-  int y = 7;
+  int width = 24;
+  int height = 18;
+  int x = window_bounds.size.w - 35;
+  int y = 5;
 
   // Create the canvas Layer
   empty_battery_layer = layer_create(GRect(x, y, width, height));
