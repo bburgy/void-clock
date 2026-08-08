@@ -9,6 +9,15 @@ Clean, essential, and relentlessly functional.
 
 ## Changelog
 
+### 1.0.2 - Redesigned Warning Icons
+
+- **Changed** Bluetooth disconnected icon: bigger (24x32), bolder strokes,
+  two-color design — black phone shape with red diagonal slash.
+- **Changed** Empty battery icon: bigger (24x18), bolder strokes,
+  two-color design — black battery outline with red X.
+- **Changed** icon layer positions in `src/layers.c` to accommodate
+  larger dimensions.
+
 ### 1.0.1 - Bluetooth Connection Stability Hotfix
 
 - **Added** 15-second Bluetooth disconnect debounce to prevent spurious
