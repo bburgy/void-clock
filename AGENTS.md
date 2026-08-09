@@ -182,9 +182,9 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 - [ ] `package.json` `"version"` bumped to `<VERSION>`
 - [ ] Changelog entry written in `README.md`
 
-#### 2. Authentication
+#### 2. Authentication (manual prerequisite)
 
-Always run this before publishing to ensure you are authenticated with Rebble:
+Login must be done manually in an interactive terminal before the automated publish step:
 
 ```bash
 pebble login --no-open-browser
@@ -193,10 +193,13 @@ pebble login --no-open-browser
 If you are already logged in, the command exits immediately.  
 If not, it displays a URL — open it in your browser to complete login.
 
+> **Do not skip this.** The publish command below uses `--non-interactive` and will fail with an auth error if you are not already logged in.
+
 #### 3. Publish Command
 
 ```bash
 pebble publish \
+  --non-interactive \
   --release-notes "<RELEASE_NOTES>" \
   --is-published \
   --screenshots <SCREENSHOT_FILES>
@@ -215,15 +218,17 @@ pebble publish \
 
 ```bash
 pebble publish \
-  --release-notes "<RELEASE_NOTES>" \
+  --non-interactive \
+  --release-notes "Redesigned warning icons for Emery." \
   --is-published \
-  --screenshots <SCREENSHOT_FILES>
+  --screenshots emery_screenshot_normal.png emery_screenshot_bt.png emery_screenshot_battery.png
 ```
 
 #### 6. Notes
 
 - **Draft vs. Published**: Omit `--is-published` to create a draft release you can review before making it public.
-- **Authentication**: If `pebble publish` fails with an auth error, return to step 2 and verify your login.
+- **Non-interactive mode**: `--non-interactive` is required for `--screenshots` to be accepted without prompting. If you omit `--screenshots`, you can also omit `--non-interactive` to use the interactive screenshot source prompt.
+- **Authentication**: `pebble publish` uses `--non-interactive`, so it assumes you are already logged in. If it fails with an auth error, return to step 2 and verify your login.
 - **Flag Reference**: Use `pebble publish --help` for the latest available flags. The SDK may add or change options over time.
 
 ---
