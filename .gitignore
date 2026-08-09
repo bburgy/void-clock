@@ -37,3 +37,4 @@
 # Pebble
 build/
 node_modules/
+.lock-waf_linux_build
