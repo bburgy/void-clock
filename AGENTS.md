@@ -163,6 +163,46 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 - [ ] Emulator: disconnect → reconnect within 15s → icon NEVER appears
 - [ ] Emulator: rapid connect/disconnect flapping → no flickering
 - [ ] Emulator: disconnect → wait 15s (icon shown) → reconnect → icon hides immediately
+- [ ] Emulator: set the battery level smaller than 5 percent -> "EMPTY_BATTERY" icon appears
+- [ ] Emulator: set the battery level bigger or equals than 5 percent -> "EMPTY_BATTERY" icon should not appears
+
+### Publish to Rebble App Store
+
+#### 1. Prerequisites
+- [ ] `pebble login` — authenticate with your Rebble account
+- [ ] `pebble build` succeeds with no errors
+- [ ] `package.json` `"version"` bumped to `<VERSION>`
+- [ ] Changelog entry written in `README.md`
+
+#### 2. Publish Command
+```bash
+pebble publish \
+  --release-notes "<RELEASE_NOTES>" \
+  --is-published \
+  --screenshots <SCREENSHOT_FILES>
+```
+
+> **Tip**: Run `pebble publish --help` to see the full, up-to-date list of available flags and descriptions for your SDK version.
+
+#### 3. Placeholders
+
+| Placeholder | What It Represents |
+|-------------|--------------------|
+| `<RELEASE_NOTES>` | Release notes text shown in the app store listing |
+| `<SCREENSHOT_FILES>` | Screenshot paths. File names must start with the platform name, e.g., `emery_screenshot.png` |
+
+#### 4. Full Example
+```bash
+pebble publish \
+  --release-notes "<RELEASE_NOTES>" \
+  --is-published \
+  --screenshots <SCREENSHOT_FILES>
+```
+
+#### 5. Notes
+- **Draft vs. Published**: Omit `--is-published` to create a draft release you can review before making it public.
+- **Authentication**: If not logged in, run `pebble login` first to avoid interactive prompts.
+- **Flag Reference**: Use `pebble publish --help` for the latest available flags. The SDK may add or change options over time.
 
 ---
 
