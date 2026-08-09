@@ -14,7 +14,7 @@
 | Platform  | Emery only (`targetPlatforms: ["emery"]`)                       |
 | Display   | Time, date, weekday, battery bar, Bluetooth connection icon     |
 | Fonts     | LECO 60 (system) for time; Milford 30 (custom) for date/weekday |
-| Version   | 1.0.1                                                           |
+| Version   | 1.0.2                                                           |
 
 ---
 
@@ -100,11 +100,19 @@ void-clock/
 │   └── layers.h        # Shared declarations
 ├── resources/
 │   ├── noBluetooth.pdc # BT disconnected icon (Pebble Draw Command)
+│   ├── noBluetooth.svg # SVG source for the BT icon
 │   ├── emptyBattery.pdc# Empty battery icon
+│   ├── emptyBattery.svg# SVG source for the battery icon
 │   └── MilfordCondensed-BG1w.ttf
+├── screenshots/        # Store assets and README images
+│   ├── screenshot_normal.png
+│   ├── screenshot_bt.png
+│   └── screenshot_battery.png
 ├── emu-*.sh            # Emulator helper scripts (see §5)
 ├── wscript             # Pebble SDK build rules
 ├── package.json        # App metadata (version, UUID, resources)
+├── AGENTS.md           # This document: architecture guide and decisions
+├── .gitignore          # Build artifacts to ignore
 └── README.md           # User-facing documentation + changelog
 ```
 
@@ -163,6 +171,65 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 - [ ] Emulator: disconnect → reconnect within 15s → icon NEVER appears
 - [ ] Emulator: rapid connect/disconnect flapping → no flickering
 - [ ] Emulator: disconnect → wait 15s (icon shown) → reconnect → icon hides immediately
+- [ ] Emulator: set the battery level smaller than 5 percent -> "EMPTY_BATTERY" icon appears
+- [ ] Emulator: set the battery level bigger or equals than 5 percent -> "EMPTY_BATTERY" icon should not appears
+
+### Publish to Rebble App Store
+
+#### 1. Prerequisites
+
+- [ ] `pebble build` succeeds with no errors
+- [ ] `package.json` `"version"` bumped to `<VERSION>`
+- [ ] Changelog entry written in `README.md`
+
+#### 2. Authentication (manual prerequisite)
+
+Login must be done manually in an interactive terminal before the automated publish step:
+
+```bash
+pebble login --no-open-browser
+```
+
+If you are already logged in, the command exits immediately.  
+If not, it displays a URL — open it in your browser to complete login.
+
+> **Do not skip this.** The publish command below uses `--non-interactive` and will fail with an auth error if you are not already logged in.
+
+#### 3. Publish Command
+
+```bash
+pebble publish \
+  --non-interactive \
+  --release-notes "<RELEASE_NOTES>" \
+  --is-published \
+  --screenshots <SCREENSHOT_FILES>
+```
+
+> **Tip**: Run `pebble publish --help` to see the full, up-to-date list of available flags and descriptions for your SDK version.
+
+#### 4. Placeholders
+
+| Placeholder          | What It Represents                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| `<RELEASE_NOTES>`    | Release notes text shown in the app store listing                                            |
+| `<SCREENSHOT_FILES>` | Screenshot paths. File names must start with the platform name, e.g., `emery_screenshot.png` |
+
+#### 5. Full Example
+
+```bash
+pebble publish \
+  --non-interactive \
+  --release-notes "Redesigned warning icons for Emery." \
+  --is-published \
+  --screenshots emery_screenshot_normal.png emery_screenshot_bt.png emery_screenshot_battery.png
+```
+
+#### 6. Notes
+
+- **Draft vs. Published**: Omit `--is-published` to create a draft release you can review before making it public.
+- **Non-interactive mode**: `--non-interactive` is required for `--screenshots` to be accepted without prompting. If you omit `--screenshots`, you can also omit `--non-interactive` to use the interactive screenshot source prompt.
+- **Authentication**: `pebble publish` uses `--non-interactive`, so it assumes you are already logged in. If it fails with an auth error, return to step 2 and verify your login.
+- **Flag Reference**: Use `pebble publish --help` for the latest available flags. The SDK may add or change options over time.
 
 ---
 
