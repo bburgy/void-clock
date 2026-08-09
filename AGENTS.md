@@ -178,16 +178,20 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 
 #### 1. Prerequisites
 
-- [ ] `pebble login` — authenticate with your Rebble account, execute pebble and display the URL to make the login.
 - [ ] `pebble build` succeeds with no errors
 - [ ] `package.json` `"version"` bumped to `<VERSION>`
 - [ ] Changelog entry written in `README.md`
 
-#### 2.Login
+#### 2. Authentication
+
+Always run this before publishing to ensure you are authenticated with Rebble:
 
 ```bash
 pebble login --no-open-browser
 ```
+
+If you are already logged in, the command exits immediately.  
+If not, it displays a URL — open it in your browser to complete login.
 
 #### 3. Publish Command
 
@@ -200,14 +204,14 @@ pebble publish \
 
 > **Tip**: Run `pebble publish --help` to see the full, up-to-date list of available flags and descriptions for your SDK version.
 
-#### 3. Placeholders
+#### 4. Placeholders
 
 | Placeholder          | What It Represents                                                                           |
 | -------------------- | -------------------------------------------------------------------------------------------- |
 | `<RELEASE_NOTES>`    | Release notes text shown in the app store listing                                            |
 | `<SCREENSHOT_FILES>` | Screenshot paths. File names must start with the platform name, e.g., `emery_screenshot.png` |
 
-#### 4. Full Example
+#### 5. Full Example
 
 ```bash
 pebble publish \
@@ -216,10 +220,10 @@ pebble publish \
   --screenshots <SCREENSHOT_FILES>
 ```
 
-#### 5. Notes
+#### 6. Notes
 
 - **Draft vs. Published**: Omit `--is-published` to create a draft release you can review before making it public.
-- **Authentication**: If not logged in, run `pebble login` first to avoid interactive prompts.
+- **Authentication**: If `pebble publish` fails with an auth error, return to step 2 and verify your login.
 - **Flag Reference**: Use `pebble publish --help` for the latest available flags. The SDK may add or change options over time.
 
 ---
