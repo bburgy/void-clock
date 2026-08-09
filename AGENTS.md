@@ -14,7 +14,7 @@
 | Platform  | Emery only (`targetPlatforms: ["emery"]`)                       |
 | Display   | Time, date, weekday, battery bar, Bluetooth connection icon     |
 | Fonts     | LECO 60 (system) for time; Milford 30 (custom) for date/weekday |
-| Version   | 1.0.1                                                           |
+| Version   | 1.0.2                                                           |
 
 ---
 
@@ -100,11 +100,19 @@ void-clock/
 │   └── layers.h        # Shared declarations
 ├── resources/
 │   ├── noBluetooth.pdc # BT disconnected icon (Pebble Draw Command)
+│   ├── noBluetooth.svg # SVG source for the BT icon
 │   ├── emptyBattery.pdc# Empty battery icon
+│   ├── emptyBattery.svg# SVG source for the battery icon
 │   └── MilfordCondensed-BG1w.ttf
+├── screenshots/        # Store assets and README images
+│   ├── screenshot_normal.png
+│   ├── screenshot_bt.png
+│   └── screenshot_battery.png
 ├── emu-*.sh            # Emulator helper scripts (see §5)
 ├── wscript             # Pebble SDK build rules
 ├── package.json        # App metadata (version, UUID, resources)
+├── AGENTS.md           # This document: architecture guide and decisions
+├── .gitignore          # Build artifacts to ignore
 └── README.md           # User-facing documentation + changelog
 ```
 
@@ -169,12 +177,14 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 ### Publish to Rebble App Store
 
 #### 1. Prerequisites
+
 - [ ] `pebble login` — authenticate with your Rebble account
 - [ ] `pebble build` succeeds with no errors
 - [ ] `package.json` `"version"` bumped to `<VERSION>`
 - [ ] Changelog entry written in `README.md`
 
 #### 2. Publish Command
+
 ```bash
 pebble publish \
   --release-notes "<RELEASE_NOTES>" \
@@ -186,12 +196,13 @@ pebble publish \
 
 #### 3. Placeholders
 
-| Placeholder | What It Represents |
-|-------------|--------------------|
-| `<RELEASE_NOTES>` | Release notes text shown in the app store listing |
+| Placeholder          | What It Represents                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------- |
+| `<RELEASE_NOTES>`    | Release notes text shown in the app store listing                                            |
 | `<SCREENSHOT_FILES>` | Screenshot paths. File names must start with the platform name, e.g., `emery_screenshot.png` |
 
 #### 4. Full Example
+
 ```bash
 pebble publish \
   --release-notes "<RELEASE_NOTES>" \
@@ -200,6 +211,7 @@ pebble publish \
 ```
 
 #### 5. Notes
+
 - **Draft vs. Published**: Omit `--is-published` to create a draft release you can review before making it public.
 - **Authentication**: If not logged in, run `pebble login` first to avoid interactive prompts.
 - **Flag Reference**: Use `pebble publish --help` for the latest available flags. The SDK may add or change options over time.
