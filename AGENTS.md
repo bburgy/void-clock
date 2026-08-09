@@ -178,12 +178,18 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 
 #### 1. Prerequisites
 
-- [ ] `pebble login` — authenticate with your Rebble account
+- [ ] `pebble login` — authenticate with your Rebble account, execute pebble and display the URL to make the login.
 - [ ] `pebble build` succeeds with no errors
 - [ ] `package.json` `"version"` bumped to `<VERSION>`
 - [ ] Changelog entry written in `README.md`
 
-#### 2. Publish Command
+#### 2.Login
+
+```bash
+pebble login --no-open-browser
+```
+
+#### 3. Publish Command
 
 ```bash
 pebble publish \
