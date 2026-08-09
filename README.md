@@ -12,17 +12,17 @@ Clean, essential, and relentlessly functional.
 <table>
   <tr>
     <td align="center">
-      <img src="screenshot_normal.png" width="180" alt="Normal State">
+      <img src="emery_screenshot_normal.png" width="180" alt="Normal State">
       <br><br>
       <b>Normal State</b>
     </td>
     <td align="center">
-      <img src="screenshot_bt.png" width="180" alt="Bluetooth Disconnected">
+      <img src="emery_screenshot_bt.png" width="180" alt="Bluetooth Disconnected">
       <br><br>
       <b>Bluetooth Disconnected</b>
     </td>
     <td align="center">
-      <img src="screenshot_battery.png" width="180" alt="Battery Empty">
+      <img src="emery_screenshot_battery.png" width="180" alt="Battery Empty">
       <br><br>
       <b>Battery Empty</b>
     </td>
