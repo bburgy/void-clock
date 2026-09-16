@@ -18,9 +18,7 @@ static Layer *battery_layer;
 static Layer *window_layer;
 static Layer *bluetooth_layer;
 static Layer *empty_battery_layer;
-
-static GDrawCommandImage *bluetooth_icon;
-static GDrawCommandImage *empty_battery_icon;
+static Layer *silent_mode_layer;
 
 static GFont milford_font_30;
 
@@ -31,8 +29,13 @@ static uint8_t text_padding_left = 15;
 static uint8_t battery_line_width = 6;
 static uint8_t top_padding = 35;
 
-static uint32_t NO_BLUETOOTH = 1;
-static uint32_t EMPTY_BATTERY = 2;
+// Empty-battery warning threshold. When charge drops below this percentage,
+// the red empty-battery icon appears in the status cluster.
+//
+// Rationale: 10 % gives users more time to find a charger before the watch
+// shuts down. PebbleOS itself warns at ~10 %, so this aligns with system
+// behavior.
+#define EMPTY_BATTERY_THRESHOLD_PERCENT 10
 
 // Bluetooth disconnect debounce (ms).
 //
@@ -62,6 +65,7 @@ static AppTimer *bluetooth_debounce_timer = NULL;
 // hidden while a debounce timer is pending, even if the OS reports a
 // disconnection.
 static bool bluetooth_icon_shown = false;
+static bool silent_mode_shown = false;
 
 static void draw_battery_line_callback(Layer *layer, GContext *context) {
 #ifdef PBL_DEBUG
@@ -103,11 +107,31 @@ static void draw_bluetooth_callback(Layer *layer, GContext *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing bluetooth icon layer ...");
 #endif
 
-  // Set the origin offset from the context for drawing the image
-  GPoint origin = GPoint(0, 0);
+  // Thin phone outline (black, 2px stroke)
+  graphics_context_set_stroke_color(context, GColorBlack);
+  graphics_context_set_stroke_width(context, 2);
 
-  // Draw the GDrawCommandImage to the GContext
-  gdraw_command_image_draw(context, bluetooth_icon, origin);
+  // Tall rectangle 18×28 with slight corner rounding
+  graphics_draw_line(context, GPoint(6, 3),  GPoint(24, 3));   // top
+  graphics_draw_line(context, GPoint(24, 3), GPoint(24, 31));  // right
+  graphics_draw_line(context, GPoint(24, 31), GPoint(6, 31));  // bottom
+  graphics_draw_line(context, GPoint(6, 31), GPoint(6, 3));    // left
+
+  // Subtle corner rounding (45° segments, 1px each)
+  graphics_draw_line(context, GPoint(6, 4),  GPoint(7, 3));
+  graphics_draw_line(context, GPoint(23, 3), GPoint(24, 4));
+  graphics_draw_line(context, GPoint(24, 30), GPoint(23, 31));
+  graphics_draw_line(context, GPoint(7, 31), GPoint(6, 30));
+
+  // Red X inside (2px stroke)
+  graphics_context_set_stroke_color(context, GColorRed);
+  graphics_context_set_stroke_width(context, 2);
+  graphics_draw_line(context, GPoint(11, 9), GPoint(19, 21));
+  graphics_draw_line(context, GPoint(19, 9), GPoint(11, 21));
+
+  // Home button (small filled circle at bottom center)
+  graphics_context_set_fill_color(context, GColorBlack);
+  graphics_fill_circle(context, GPoint(15, 27), 2);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -119,11 +143,24 @@ static void draw_empty_battery_callback(Layer *layer, GContext *context) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing empty battery icon layer ...");
 #endif
 
-  // Set the origin offset from the context for drawing the image
-  GPoint origin = GPoint(0, 0);
+  // Battery body (black)
+  graphics_context_set_stroke_color(context, GColorBlack);
+  graphics_context_set_stroke_width(context, 3);
+  graphics_draw_line(context, GPoint(2, 6),  GPoint(18, 6));   // top
+  graphics_draw_line(context, GPoint(2, 6),  GPoint(2, 26));   // left
+  graphics_draw_line(context, GPoint(2, 26), GPoint(18, 26));  // bottom
+  graphics_draw_line(context, GPoint(18, 10), GPoint(18, 22)); // right (gap)
 
-  // Draw the GDrawCommandImage to the GContext
-  gdraw_command_image_draw(context, empty_battery_icon, origin);
+  // Battery nipple (black)
+  graphics_draw_line(context, GPoint(18, 10), GPoint(22, 10));
+  graphics_draw_line(context, GPoint(22, 10), GPoint(22, 22));
+  graphics_draw_line(context, GPoint(22, 22), GPoint(18, 22));
+
+  // Red X inside
+  graphics_context_set_stroke_color(context, GColorRed);
+  graphics_context_set_stroke_width(context, 3);
+  graphics_draw_line(context, GPoint(5, 9),  GPoint(15, 23));
+  graphics_draw_line(context, GPoint(15, 9), GPoint(5, 23));
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -276,18 +313,19 @@ static void prepare_bluetooth_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing bluetooth icon layer ...");
 #endif
 
-  int width = 24;
-  int height = 32;
-  int x = window_bounds.size.w - 65;
-  int y = 3;
+  // Emery status icon cluster layout (200 px wide screen):
+  //   Silent:  95–131 (36 px) | BT: 131–163 (32 px) | Empty: 163–195 (32 px)
+  //   Battery bar: 194–200 (6 px) — 1 px gap to empty battery icon
+  //
+  // Icon canvas includes 2 px padding on all sides to prevent stroke-bleed
+  // clipping from PebbleOS anti-aliasing (worst: 4 px diagonal + 2 px bleed).
+  int width = 32;
+  int height = 36;
+  int x = window_bounds.size.w - 73;
+  int y = 0;
 
-  // Create the canvas Layer
   bluetooth_layer = layer_create(GRect(x, y, width, height));
-
-  // Set the LayerUpdateProc
   layer_set_update_proc(bluetooth_layer, draw_bluetooth_callback);
-
-  // Add to parent Window
   layer_add_child(window_layer, bluetooth_layer);
 
 #ifdef PBL_DEBUG
@@ -300,19 +338,72 @@ static void prepare_empty_battery_layer() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing empty battery icon layer ...");
 #endif
 
-  int width = 24;
-  int height = 18;
-  int x = window_bounds.size.w - 35;
-  int y = 5;
+  // See prepare_bluetooth_layer() for cluster layout comment.
+  int width = 32;
+  int height = 36;
+  int x = window_bounds.size.w - 45;
+  int y = 0;
 
-  // Create the canvas Layer
   empty_battery_layer = layer_create(GRect(x, y, width, height));
-
-  // Set the LayerUpdateProc
   layer_set_update_proc(empty_battery_layer, draw_empty_battery_callback);
-
-  // Add to parent Window
   layer_add_child(window_layer, empty_battery_layer);
+
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
+}
+
+static void draw_silent_mode_callback(Layer *layer, GContext *context) {
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Drawing silent mode icon layer ...");
+#endif
+
+  // Large black Z
+  graphics_context_set_stroke_color(context, GColorBlack);
+  graphics_context_set_stroke_width(context, 3);
+  graphics_draw_line(context, GPoint(1, 4), GPoint(13, 4));
+  graphics_draw_line(context, GPoint(13, 4), GPoint(1, 16));
+  graphics_draw_line(context, GPoint(1, 16), GPoint(10, 16));
+
+  // Medium red z
+  graphics_context_set_stroke_color(context, GColorRed);
+  graphics_context_set_stroke_width(context, 2);
+  graphics_draw_line(context, GPoint(14, 10), GPoint(21, 10));
+  graphics_draw_line(context, GPoint(21, 10), GPoint(14, 20));
+  graphics_draw_line(context, GPoint(14, 20), GPoint(19, 20));
+
+  // Small red z
+  graphics_draw_line(context, GPoint(21, 18), GPoint(26, 18));
+  graphics_draw_line(context, GPoint(26, 18), GPoint(21, 26));
+  graphics_draw_line(context, GPoint(21, 26), GPoint(24, 26));
+
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
+#endif
+}
+
+static void prepare_silent_mode_layer() {
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Preparing silent mode icon layer ...");
+#endif
+
+  // Emery status icon cluster layout (200 px wide screen):
+  //   Silent:  95–131 (36 px) | BT: 131–163 (32 px) | Empty: 163–195 (32 px)
+  //   Battery bar: 194–200 (6 px) — 1 px gap to empty battery icon
+  //
+  // Icon canvas includes 2 px padding on all sides to prevent stroke-bleed
+  // clipping from PebbleOS anti-aliasing (worst: 3 px diagonal + 1.5 px bleed).
+  int width = 36;
+  int height = 36;
+  int x = window_bounds.size.w - 105;
+  int y = 0;
+
+  silent_mode_layer = layer_create(GRect(x, y, width, height));
+  layer_set_update_proc(silent_mode_layer, draw_silent_mode_callback);
+  layer_add_child(window_layer, silent_mode_layer);
+
+  // Start hidden until quiet time becomes active
+  layer_set_hidden(silent_mode_layer, true);
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -326,6 +417,7 @@ void prepare_layers() {
 
   prepare_bluetooth_layer();
   prepare_empty_battery_layer();
+  prepare_silent_mode_layer();
   prepare_battery_line_layer();
   prepare_time_layer();
   prepare_date_layer();
@@ -342,10 +434,8 @@ void load_resources() {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Loading resources ...");
 #endif
 
-  // Create the object from resource file
-  bluetooth_icon = gdraw_command_image_create_with_resource(NO_BLUETOOTH);
-  empty_battery_icon =
-      gdraw_command_image_create_with_resource(EMPTY_BATTERY);
+  // All status icons are drawn procedurally; no external image resources
+  // to load here.
 
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Done.");
@@ -383,6 +473,15 @@ void bluetooth_debounce_cancel(void) {
   }
 }
 
+void handle_quiet_time(bool active) {
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Quiet time %sactive", active ? "" : "in");
+#endif
+
+  silent_mode_shown = active;
+  layer_set_hidden(silent_mode_layer, !active);
+}
+
 void handle_app_connection_handler(bool connected) {
 #ifdef PBL_DEBUG
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Pebble app %sconnected",
@@ -414,6 +513,10 @@ void handle_minute(struct tm *tick_time, TimeUnits units_changed) {
   // that system-level goal. The connection_service callbacks are reliable;
   // we trust them completely, and the debounce callback above re-checks live
   // state before showing the icon, which is cheaper than polling every 60 s.
+  //
+  // Quiet Time, however, has no OS subscription callback (SDK v4.33), so we
+  // poll it here once per minute. The cost is a single boolean check.
+  handle_quiet_time(quiet_time_is_active());
 }
 
 void update_datetime(struct tm *tick_time) {
@@ -442,7 +545,7 @@ void update_datetime(struct tm *tick_time) {
 void handle_battery(BatteryChargeState charge_state) {
   unsigned int percent = charge_state.charge_percent;
   update_battery_line(percent);
-  update_empty_battery_icon(percent < 5);
+  update_empty_battery_icon(percent < EMPTY_BATTERY_THRESHOLD_PERCENT);
 }
 
 void init_window_layer(Window *window) {
@@ -483,10 +586,7 @@ void destroy_application_layers() {
   layer_destroy(battery_layer);
   layer_destroy(bluetooth_layer);
   layer_destroy(empty_battery_layer);
-
-  // Destroy image
-  gdraw_command_image_destroy(empty_battery_icon);
-  gdraw_command_image_destroy(bluetooth_icon);
+  layer_destroy(silent_mode_layer);
 
   // Unload the fonts
   fonts_unload_custom_font(milford_font_30);

@@ -16,16 +16,6 @@
     "resources": {
       "media": [
         {
-          "file": "noBluetooth.pdc",
-          "name": "NO_BLUETOOTH",
-          "type": "raw"
-        },
-        {
-          "file": "emptyBattery.pdc",
-          "name": "EMPTY_BATTERY",
-          "type": "raw"
-        },
-        {
           "file": "MilfordCondensed-BG1w.ttf",
           "name": "MILFORD_FONT_30",
           "type": "font",
@@ -45,5 +35,5 @@
     }
   },
   "private": false,
-  "version": "1.0.2"
+  "version": "1.0.4"
 }

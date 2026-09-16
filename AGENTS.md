@@ -14,7 +14,7 @@
 | Platform  | Emery only (`targetPlatforms: ["emery"]`)                       |
 | Display   | Time, date, weekday, battery bar, Bluetooth connection icon     |
 | Fonts     | LECO 60 (system) for time; Milford 30 (custom) for date/weekday |
-| Version   | 1.0.2                                                           |
+| Version   | 1.0.4                                                           |
 
 ---
 
@@ -75,7 +75,31 @@ Static variables do NOT get a `s_` prefix. Module functions use the full module 
 
 ---
 
+### ADR-4: Quiet Time polling = once per minute
+
+**Context:** Pebble SDK v4.33 provides `quiet_time_is_active()` but no
+subscription callback analogous to `connection_service` or `battery_state_service`.
+There is no `quiet_time_service_subscribe()`.
+
+**Decision:** Check `quiet_time_is_active()` inside `handle_minute()`, i.e. once
+per minute.
+
+**Rationale:**
+- No OS event-driven alternative exists; polling is the only mechanism.
+- The cost is a single boolean function call per minute — negligible compared
+  to the time-formatting work already done in the same tick handler.
+- This is consistent with ADR-2's trust-in-callbacks philosophy applied to a
+  subsystem where the OS gives us no callback at all.
+- Visual latency of ≤ 59 s is acceptable for a user-toggled quiet-mode
+  indicator.
+
+---
+
 ## 3. PebbleOS Firmware Timeline (Relevant to This Watchface)
+
+> **Note:** This timeline was last updated August 2026. Check the latest
+> PebbleOS changelog at https://ndocs.repebble.com/pebbleos-changelog before
+> making changes, as firmware behavior continues to evolve.
 
 | Version  | Date      | Relevant Change                                                   |
 | -------- | --------- | ----------------------------------------------------------------- |
@@ -99,15 +123,14 @@ void-clock/
 │   ├── layers.c        # All UI rendering and Bluetooth debounce logic
 │   └── layers.h        # Shared declarations
 ├── resources/
-│   ├── noBluetooth.pdc # BT disconnected icon (Pebble Draw Command)
-│   ├── noBluetooth.svg # SVG source for the BT icon
-│   ├── emptyBattery.pdc# Empty battery icon
-│   ├── emptyBattery.svg# SVG source for the battery icon
+│   ├── silentMode.svg  # SVG source / reference for the quiet mode icon
+│   │                     (all status icons are drawn procedurally in src/layers.c)
 │   └── MilfordCondensed-BG1w.ttf
 ├── screenshots/        # Store assets and README images
-│   ├── screenshot_normal.png
-│   ├── screenshot_bt.png
-│   └── screenshot_battery.png
+│   ├── emery_screenshot_normal.png
+│   ├── emery_screenshot_bt.png
+│   ├── emery_screenshot_battery.png
+│   └── emery_screenshot_quiet.png
 ├── emu-*.sh            # Emulator helper scripts (see §5)
 ├── wscript             # Pebble SDK build rules
 ├── package.json        # App metadata (version, UUID, resources)
@@ -120,7 +143,7 @@ void-clock/
 
 **`src/main.c`**
 
-- `window_load()`: Subscribes `tick_timer`, `battery_state`, `connection_service`. Peeks initial BT state.
+- `window_load()`: Subscribes `tick_timer`, `battery_state`, `connection_service`. Peeks initial BT and quiet time states.
 - `window_unload()`: Unsubscribes all services + calls `bluetooth_debounce_cancel()`.
 - No `setToReady()` — it was dead code and was removed.
 
@@ -128,7 +151,7 @@ void-clock/
 
 - `bluetooth_debounce_callback()`: Called after `BLUETOOTH_DISCONNECT_DEBOUNCE_MS`. Re-checks live BT state before showing icon.
 - `handle_app_connection_handler()`: Event-driven. Hides icon immediately on connect; starts debounce timer on disconnect (guarded against re-arming).
-- `handle_minute()`: Updates time only. NO Bluetooth work.
+- `handle_minute()`: Updates time and polls quiet time state. NO Bluetooth work.
 
 ---
 
@@ -159,7 +182,7 @@ pebble emu-bt-connection --emulator emery --connected yes
 pebble emu-bt-connection --emulator emery --connected no
 
 # Battery test
-pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
+pebble emu-battery --emulator emery --percent 9   # triggers empty battery icon
 ```
 
 ### Pre-release checklist
@@ -171,8 +194,10 @@ pebble emu-battery --emulator emery --percent 5   # triggers empty battery icon
 - [ ] Emulator: disconnect → reconnect within 15s → icon NEVER appears
 - [ ] Emulator: rapid connect/disconnect flapping → no flickering
 - [ ] Emulator: disconnect → wait 15s (icon shown) → reconnect → icon hides immediately
-- [ ] Emulator: set the battery level smaller than 5 percent -> "EMPTY_BATTERY" icon appears
-- [ ] Emulator: set the battery level bigger or equals than 5 percent -> "EMPTY_BATTERY" icon should not appears
+- [ ] Emulator: set the battery level smaller than 10 percent -> "EMPTY_BATTERY" icon appears
+- [ ] Emulator: set the battery level bigger or equals than 10 percent -> "EMPTY_BATTERY" icon should not appears
+- [ ] Emulator: quiet time ON -> "Zzz" icon appears at top-left of status cluster without overlapping time/date/BT layers
+- [ ] Emulator: quiet time OFF -> "Zzz" icon hides immediately
 
 ### Publish to Rebble App Store
 

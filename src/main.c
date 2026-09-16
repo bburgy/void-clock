@@ -8,6 +8,8 @@
 
 #include "layers.h"
 #include <pebble.h>
+#include <locale.h> // setlocale()
+#include <time.h>   // time(), localtime()
 
 static Window *window;
 
@@ -33,6 +35,7 @@ static void window_load(Window *window) {
   handle_battery(battery_state_service_peek());
   handle_app_connection_handler(
       connection_service_peek_pebble_app_connection());
+  handle_quiet_time(quiet_time_is_active());
 }
 
 static void window_unload(Window *window) {

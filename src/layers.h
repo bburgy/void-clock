@@ -6,6 +6,9 @@
  * @Last modified time: 2026-06-03T20:57:11+02:00
  */
 
+#ifndef LAYERS_H
+#define LAYERS_H
+
 #include <pebble.h>
 
 void init_window_layer(Window *window);
@@ -19,3 +22,6 @@ void handle_app_connection_handler(bool connected);
 void bluetooth_debounce_cancel();
 void handle_minute(struct tm *tick_time, TimeUnits units_changed);
 void handle_battery(BatteryChargeState charge_state);
+void handle_quiet_time(bool active);
+
+#endif // LAYERS_H
