@@ -95,6 +95,44 @@ per minute.
 
 ---
 
+### ADR-6: Source code modularization
+
+**Context:** `src/layers.c` grew to ~600 lines mixing text rendering, procedural
+icon drawing, state machines, debounce timers, and OS callback handlers.
+
+**Decision:** Split into three modules:
+
+| File | Responsibility |
+|------|--------------|
+| `src/datetime.c` | Time/date/weekday text layers, line separator, Milford 30 font |
+| `src/icons.c` | Procedural icon drawing, layer creation, visibility toggling |
+| `src/status.c` | State machines, debounce timers, polling (quiet time) |
+
+**Rationale:**
+- Each file has a single, well-defined responsibility.
+- `main.c` remains a thin shell — event routing only.
+- No build-system changes required; `wscript` already uses
+  `ctx.path.ant_glob('src/**/*.c')`.
+
+---
+
+### ADR-7: Inline comment policy
+
+**Context:** The codebase accumulated verbose inline comments (`// Drawing...`,
+`// Done.`, `#ifdef PBL_DEBUG APP_LOG(...) #endif`) that explained what the
+code did rather than why decisions were made.
+
+**Decision:** Strip inline comments aggressively. Preserve only non-obvious
+technical constraints (e.g., `// 2 px bleed margin for anti-aliasing`). Move
+all architectural rationale into ADRs inside `AGENTS.md`.
+
+**Rationale:**
+- Well-named functions and variables should say *what* the code does.
+- `AGENTS.md` is the canonical place for *why* a decision was made.
+- Debug-logging blocks for mechanical operations are prohibited. Selective
+  high-signal logging for state transitions may be preserved under
+  `#ifdef PBL_DEBUG` for emulator debugging.
+
 ## 3. PebbleOS Firmware Timeline (Relevant to This Watchface)
 
 > **Note:** This timeline was last updated August 2026. Check the latest
@@ -119,12 +157,16 @@ per minute.
 ```
 void-clock/
 ├── src/
-│   ├── main.c          # App entry point, service subscriptions, lifecycle
-│   ├── layers.c        # All UI rendering and Bluetooth debounce logic
-│   └── layers.h        # Shared declarations
+│   ├── main.c          # Thin shell: service subscriptions, lifecycle
+│   ├── datetime.c      # Time, date, weekday text layers + line separator
+│   ├── datetime.h
+│   ├── icons.c         # Procedural icon drawing (all status icons)
+│   ├── icons.h
+│   ├── status.c        # State machines, debounce timers, quiet-time polling
+│   └── status.h
 ├── resources/
-│   ├── silentMode.svg  # SVG source / reference for the quiet mode icon
-│   │                     (all status icons are drawn procedurally in src/layers.c)
+│   ├── silentMode.svg  # SVG reference for the quiet mode icon
+│   │                     (all status icons are drawn procedurally in src/icons.c)
 │   └── MilfordCondensed-BG1w.ttf
 ├── screenshots/        # Store assets and README images
 │   ├── emery_screenshot_normal.png
@@ -144,14 +186,25 @@ void-clock/
 **`src/main.c`**
 
 - `window_load()`: Subscribes `tick_timer`, `battery_state`, `connection_service`. Peeks initial BT and quiet time states.
-- `window_unload()`: Unsubscribes all services + calls `bluetooth_debounce_cancel()`.
-- No `setToReady()` — it was dead code and was removed.
+- `window_unload()`: Unsubscribes all services + calls `status_deinit()`.
+- Thin event-routing handlers delegate to `datetime.c` and `status.c`.
 
-**`src/layers.c`**
+**`src/datetime.c`**
+
+- `datetime_update()`: Formats time, date, weekday strings and updates text layers.
+- `datetime_layers_create() / destroy()`: Manages time/date/weekday text layers, line separator, and Milford 30 font lifetime.
+
+**`src/icons.c`**
+
+- `draw_*_callback()`: Procedural drawing routines for all status icons (Bluetooth, empty battery, quiet mode).
+- `icons_layers_create() / destroy()`: Manages icon layer creation and cleanup.
+- `icons_set_*_shown()`: Visibility toggles called by `status.c`.
+
+**`src/status.c`**
 
 - `bluetooth_debounce_callback()`: Called after `BLUETOOTH_DISCONNECT_DEBOUNCE_MS`. Re-checks live BT state before showing icon.
-- `handle_app_connection_handler()`: Event-driven. Hides icon immediately on connect; starts debounce timer on disconnect (guarded against re-arming).
-- `handle_minute()`: Updates time and polls quiet time state. NO Bluetooth work.
+- `status_handle_bluetooth()`: Event-driven. Hides icon immediately on connect; starts debounce timer on disconnect.
+- `status_update_icons()`: Polls quiet-time state. Called once per minute from `handle_minute()`.
 
 ---
 

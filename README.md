@@ -36,6 +36,15 @@ Clean, essential, and relentlessly functional.
 
 ## Changelog
 
+### 1.0.5 - Code Refactoring
+
+- **Changed** Refactored monolithic `src/layers.c` into three single-
+  responsibility modules: `src/datetime.c`, `src/icons.c`, and `src/status.c`.
+- **Changed** `src/main.c` is now a thin event-routing shell following the
+  Functional Core, Imperative Shell pattern.
+- **Removed** Inline debug-logging blocks (`APP_LOG`); architectural rationale
+  now lives in `AGENTS.md`.
+
 ### 1.0.4 - Procedural Warning Icons
 
 - **Changed** Bluetooth and empty-battery icons from PDC resources to
