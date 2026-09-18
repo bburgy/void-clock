@@ -12,9 +12,9 @@
 | --------- | --------------------------------------------------------------- |
 | Language  | C (native, no JavaScript/Clay)                                  |
 | Platform  | Emery only (`targetPlatforms: ["emery"]`)                       |
-| Display   | Time, date, weekday, battery bar, Bluetooth connection icon     |
+| Display   | Time, date, weekday, battery bar, Bluetooth, Quiet-Time, alarm indicators |
 | Fonts     | LECO 60 (system) for time; Milford 30 (custom) for date/weekday |
-| Version   | 1.0.4                                                           |
+| Version   | 1.0.5                                                           |
 
 ---
 
@@ -95,6 +95,73 @@ per minute.
 
 ---
 
+### ADR-5: Alarm polling = once per minute
+
+**Context:** Pebble SDK v4.33 provides `alarm_service_peek_next()` on Emery,
+but no subscription callback analogous to `connection_service` or
+`battery_state_service`. There is no `alarm_service_subscribe()`.
+
+**Decision:** Check `alarm_service_peek_next()` inside `status_update_icons()`,
+i.e. once per minute (called from `handle_minute()`).
+
+**Rationale:**
+- No OS event-driven alternative exists; polling is the only mechanism.
+- The cost is a single boolean function call per minute — negligible compared
+  to the time-formatting work already done in the same tick handler.
+- This is consistent with ADR-4's quiet-time polling pattern applied to a
+  subsystem where the OS gives us no callback at all.
+- Visual latency of ≤ 59 s is acceptable for an alarm-schedule indicator.
+
+**Additional safeguard:** `app_focus_service_subscribe()` is used so that when
+a user exits a system menu (where they may have changed alarms), the watchface
+updates immediately on regaining focus without waiting for the next minute tick.
+
+---
+
+### ADR-6: Source code modularization
+
+**Context:** `src/layers.c` grew to ~600 lines mixing text rendering, procedural
+icon drawing, state machines, debounce timers, and OS callback handlers. Adding
+a fourth subsystem (alarm) would push it past what a single file should carry.
+
+**Decision:** Split into three modules:
+
+| File | Responsibility |
+|------|--------------|
+| `src/datetime.c` | Time/date/weekday text layers, line separator, Milford 30 font |
+| `src/icons.c` | Procedural icon drawing, layer creation, visibility toggling |
+| `src/status.c` | State machines, debounce timers, polling (quiet time, alarm) |
+
+**Rationale:**
+- Each file has a single, well-defined responsibility.
+- Adding a new icon or status no longer requires editing a monolithic file.
+- `main.c` remains a thin shell — event routing only — following the
+  Functional Core, Imperative Shell pattern.
+- No build-system changes required; `wscript` already uses
+  `ctx.path.ant_glob('src/**/*.c')`.
+- Follows Pebble community conventions and SDK template guidance.
+
+---
+
+### ADR-7: Inline comment policy
+
+**Context:** The codebase accumulated verbose inline comments (`// Drawing...`,
+`// Done.`, `#ifdef PBL_DEBUG APP_LOG(...) #endif`) that explained what the
+code did rather than why decisions were made.
+
+**Decision:** Strip inline comments aggressively. Preserve only non-obvious
+technical constraints (e.g., `// 2 px bleed margin for anti-aliasing`). Move
+all architectural rationale into ADRs inside `AGENTS.md`.
+
+**Rationale:**
+- Well-named functions and variables should say *what* the code does.
+- `AGENTS.md` is the canonical place for *why* a decision was made.
+- Debug-logging blocks (`APP_LOG`) for mechanical operations (`// Drawing...`,
+  `// Done.`) are prohibited. Selective high-signal logging for state
+  transitions (BT connect/disconnect, debounce timer fire, status polling)
+  may be preserved under `#ifdef PBL_DEBUG` for emulator debugging.
+- Cleaner C source is easier to read and maintain.
+
 ## 3. PebbleOS Firmware Timeline (Relevant to This Watchface)
 
 > **Note:** This timeline was last updated August 2026. Check the latest
@@ -119,12 +186,16 @@ per minute.
 ```
 void-clock/
 ├── src/
-│   ├── main.c          # App entry point, service subscriptions, lifecycle
-│   ├── layers.c        # All UI rendering and Bluetooth debounce logic
-│   └── layers.h        # Shared declarations
+│   ├── main.c          # Thin shell: service subscriptions, lifecycle
+│   ├── datetime.c      # Time, date, weekday text layers + line separator
+│   ├── datetime.h
+│   ├── icons.c         # Procedural icon drawing (all status icons)
+│   ├── icons.h
+│   ├── status.c        # State machines, debounce timers, quiet-time/alarm polling
+│   └── status.h
 ├── resources/
-│   ├── silentMode.svg  # SVG source / reference for the quiet mode icon
-│   │                     (all status icons are drawn procedurally in src/layers.c)
+│   ├── silentMode.svg  # SVG reference for the quiet mode icon
+│   │                     (all status icons are drawn procedurally in src/icons.c)
 │   └── MilfordCondensed-BG1w.ttf
 ├── screenshots/        # Store assets and README images
 │   ├── emery_screenshot_normal.png
@@ -143,15 +214,26 @@ void-clock/
 
 **`src/main.c`**
 
-- `window_load()`: Subscribes `tick_timer`, `battery_state`, `connection_service`. Peeks initial BT and quiet time states.
-- `window_unload()`: Unsubscribes all services + calls `bluetooth_debounce_cancel()`.
-- No `setToReady()` — it was dead code and was removed.
+- `window_load()`: Subscribes `tick_timer`, `battery_state`, `connection_service`, and `app_focus_service`. Peeks initial battery, BT, and quiet-time/alarm states.
+- `window_unload()`: Unsubscribes all services + calls `status_deinit()`.
+- Thin event-routing handlers delegate to `datetime.c` and `status.c`.
 
-**`src/layers.c`**
+**`src/datetime.c`**
+
+- `datetime_update()`: Formats time, date, weekday strings and updates text layers.
+- `datetime_layers_create() / destroy()`: Manages time/date/weekday text layers, line separator, and Milford 30 font lifetime.
+
+**`src/icons.c`**
+
+- `draw_*_callback()`: Procedural drawing routines for all status icons (Bluetooth, empty battery, quiet mode, alarm).
+- `icons_layers_create() / destroy()`: Manages icon layer creation and cleanup.
+- `icons_set_*_shown()`: Visibility toggles called by `status.c`.
+
+**`src/status.c`**
 
 - `bluetooth_debounce_callback()`: Called after `BLUETOOTH_DISCONNECT_DEBOUNCE_MS`. Re-checks live BT state before showing icon.
-- `handle_app_connection_handler()`: Event-driven. Hides icon immediately on connect; starts debounce timer on disconnect (guarded against re-arming).
-- `handle_minute()`: Updates time and polls quiet time state. NO Bluetooth work.
+- `status_handle_bluetooth()`: Event-driven. Hides icon immediately on connect; starts debounce timer on disconnect.
+- `status_update_icons()`: Polls quiet-time and alarm state. Called once per minute from `handle_minute()` and on `app_focus_service` regain-focus events.
 
 ---
 
@@ -198,6 +280,10 @@ pebble emu-battery --emulator emery --percent 9   # triggers empty battery icon
 - [ ] Emulator: set the battery level bigger or equals than 10 percent -> "EMPTY_BATTERY" icon should not appears
 - [ ] Emulator: quiet time ON -> "Zzz" icon appears at top-left of status cluster without overlapping time/date/BT layers
 - [ ] Emulator: quiet time OFF -> "Zzz" icon hides immediately
+- [ ] Emulator: alarm ON -> alarm clock icon appears at top-left of status cluster (x=63) with red hands, without overlapping time/date/BT layers (verify with `screenshots/emery_screenshot_alarm.png`)
+- [ ] Emulator: alarm OFF -> icon hides immediately (max 59 s)
+- [ ] Emulator: long date strings (e.g., "September 28") do not overlap alarm icon
+- [ ] Emulator: return from system menu -> quiet-time + alarm state refresh immediately
 
 ### Publish to Rebble App Store
 
@@ -244,9 +330,9 @@ pebble publish \
 ```bash
 pebble publish \
   --non-interactive \
-  --release-notes "Redesigned warning icons for Emery." \
+  --release-notes "Added alarm clock indicator with red accent hands, refactored source into modular files." \
   --is-published \
-  --screenshots emery_screenshot_normal.png emery_screenshot_bt.png emery_screenshot_battery.png
+  --screenshots screenshots/emery_screenshot_normal.png screenshots/emery_screenshot_bt.png screenshots/emery_screenshot_battery.png screenshots/emery_screenshot_quiet.png screenshots/emery_screenshot_alarm.png
 ```
 
 #### 6. Notes
@@ -267,4 +353,4 @@ pebble publish \
 
 ---
 
-_This document should be updated whenever PebbleOS firmware changes affect Bluetooth behavior or when new architectural decisions are made._
+_This document should be updated whenever PebbleOS firmware changes affect Bluetooth or alarm behavior or when new architectural decisions are made._
