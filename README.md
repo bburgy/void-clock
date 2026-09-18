@@ -41,6 +41,14 @@ Clean, essential, and relentlessly functional.
 
 ## Changelog
 
+### 1.0.6 - Even Icon Distribution
+
+- **Changed** Status icons (alarm, quiet mode, bluetooth, empty battery) are now
+  evenly distributed across the top of the screen with equal 16px gaps between
+  each icon, using the maximum available width before the battery bar.
+- **Changed** All conditional icons standardized to 36px height for visual
+  consistency.
+
 ### 1.0.5 - Alarm Indicator & Code Refactoring
 
 - **Added** Alarm clock icon shown when at least one enabled alarm is scheduled.
