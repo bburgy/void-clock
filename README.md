@@ -3,7 +3,7 @@
 Born from the legacy of ClockLight (a decade in the making), Void Clock is
 a high-contrast minimalist watchface designed for the focused. It strips
 away the noise to display only what matters: the time, date, weekday,
-battery level, Bluetooth connection status, and Quiet-Time indicator.
+battery level, Bluetooth connection status, Quiet-Time, and alarm indicators.
 
 Clean, essential, and relentlessly functional.
 
@@ -31,17 +31,26 @@ Clean, essential, and relentlessly functional.
       <br><br>
       <b>Quiet Mode</b>
     </td>
+    <td align="center">
+      <img src="screenshots/emery_screenshot_alarm.png" width="180" alt="Alarm Active">
+      <br><br>
+      <b>Alarm Active</b>
+    </td>
   </tr>
 </table>
 
 ## Changelog
 
-### 1.0.5 - Code Refactoring
+### 1.0.5 - Alarm Indicator & Code Refactoring
 
+- **Added** Alarm clock icon shown when at least one enabled alarm is scheduled.
+  Uses `alarm_service_peek_next()` on Emery SDK.
+- **Added** `app_focus_service` subscription to refresh quiet-time and alarm
+  state when the user returns from system menus.
+- **Added** Poll `alarm_service_peek_next()` once per minute (SDK v4.33
+  provides no subscription service for alarms).
 - **Changed** Refactored monolithic `src/layers.c` into three single-
   responsibility modules: `src/datetime.c`, `src/icons.c`, and `src/status.c`.
-- **Changed** `src/main.c` is now a thin event-routing shell following the
-  Functional Core, Imperative Shell pattern.
 - **Removed** Inline debug-logging blocks (`APP_LOG`); architectural rationale
   now lives in `AGENTS.md`.
 

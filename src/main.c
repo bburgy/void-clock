@@ -20,6 +20,12 @@ static void handle_bluetooth(bool connected) {
   status_handle_bluetooth(connected);
 }
 
+static void handle_focus(bool in_focus) {
+  if (in_focus) {
+    status_update_icons();
+  }
+}
+
 static void window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
@@ -34,6 +40,7 @@ static void window_load(Window *window) {
   battery_state_service_subscribe(handle_battery);
   connection_service_subscribe((ConnectionHandlers){
       .pebble_app_connection_handler = handle_bluetooth});
+  app_focus_service_subscribe(handle_focus);
 
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
@@ -48,6 +55,7 @@ static void window_unload(Window *window) {
   tick_timer_service_unsubscribe();
   battery_state_service_unsubscribe();
   connection_service_unsubscribe();
+  app_focus_service_unsubscribe();
   status_deinit();
   datetime_layers_destroy();
   icons_layers_destroy();

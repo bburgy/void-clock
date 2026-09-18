@@ -59,4 +59,26 @@ void status_handle_bluetooth(bool connected) {
 void status_update_icons() {
   bool quiet = quiet_time_is_active();
   icons_set_quiet_time_shown(quiet);
+
+#ifdef _PBL_API_EXISTS_alarm_service_peek_next
+  time_t alarm_dummy;
+  bool alarm = alarm_service_peek_next(&alarm_dummy);
+  icons_set_alarm_shown(alarm);
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Status update — quiet: %d, alarm: %d",
+          quiet, alarm);
+#endif
+#else
+  icons_set_alarm_shown(false);
+#ifdef PBL_DEBUG
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Status update — quiet: %d, alarm: 0",
+          quiet);
+#endif
+#endif
+}
+
+void status_handle_focus(bool in_focus) {
+  if (in_focus) {
+    status_update_icons();
+  }
 }
