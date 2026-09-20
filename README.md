@@ -9,35 +9,13 @@ Clean, essential, and relentlessly functional.
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="screenshots/emery_screenshot_normal.png" width="180" alt="Normal State">
-      <br><br>
-      <b>Normal State</b>
-    </td>
-    <td align="center">
-      <img src="screenshots/emery_screenshot_bt.png" width="180" alt="Bluetooth Disconnected">
-      <br><br>
-      <b>Bluetooth Disconnected</b>
-    </td>
-    <td align="center">
-      <img src="screenshots/emery_screenshot_battery.png" width="180" alt="Battery Empty">
-      <br><br>
-      <b>Battery Empty</b>
-    </td>
-    <td align="center">
-      <img src="screenshots/emery_screenshot_quiet.png" width="180" alt="Quiet Mode">
-      <br><br>
-      <b>Quiet Mode</b>
-    </td>
-    <td align="center">
-      <img src="screenshots/emery_screenshot_alarm.png" width="180" alt="Alarm Active">
-      <br><br>
-      <b>Alarm Active</b>
-    </td>
-  </tr>
-</table>
+| State                      | Screenshot                                                     |
+| -------------------------- | -------------------------------------------------------------- |
+| **Normal**                 | ![Normal State](screenshots/emery_screenshot_normal.png)       |
+| **Bluetooth Disconnected** | ![Bluetooth Disconnected](screenshots/emery_screenshot_bt.png) |
+| **Battery Empty**          | ![Battery Empty](screenshots/emery_screenshot_battery.png)     |
+| **Quiet Mode**             | ![Quiet Mode](screenshots/emery_screenshot_quiet.png)          |
+| **Alarm Active**           | ![Alarm Active](screenshots/emery_screenshot_alarm.png)        |
 
 ## Changelog
 
